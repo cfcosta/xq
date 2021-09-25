@@ -70,7 +70,7 @@ fn identifier(input: &str) -> IResult<&str, Identifier> {
     )(input)
 }
 
-fn parse_enqueue(input: &str) -> IResult<&str, Command> {
+fn enqueue(input: &str) -> IResult<&str, Command> {
     map_res(
         tuple((
             tag("enqueue"),
@@ -85,19 +85,19 @@ fn parse_enqueue(input: &str) -> IResult<&str, Command> {
     )(input)
 }
 
-fn parse_dequeue(input: &str) -> IResult<&str, Command> {
+fn dequeue(input: &str) -> IResult<&str, Command> {
     map_res(
         tuple((tag("dequeue"), multispace1, identifier)),
         |(_, _, id): (&str, &str, Identifier)| -> Result<Command> { Ok(Command::Dequeue(id)) },
     )(input)
 }
 
-pub fn parse_expr(input: &str) -> IResult<&str, Command> {
-    alt((parse_enqueue, parse_dequeue))(input)
+pub fn expr(input: &str) -> IResult<&str, Command> {
+    complete(alt((enqueue, dequeue)))(input)
 }
 
 pub fn parse(input: &str) -> IResult<&str, Vec<Command>> {
-    many1(terminated(parse_expr, opt(tag("\r\n"))))(input)
+    many1(terminated(expr, opt(tag("\r\n"))))(input)
 }
 
 #[test]
@@ -127,10 +127,10 @@ fn expr_test() {
     let id = Identifier(String::from("omg"));
 
     assert_eq!(
-        parse_expr("enqueue omg 123"),
+        expr("enqueue omg 123"),
         Ok(("", Command::Enqueue(id.clone(), Value::Integer(123))))
     );
-    assert_eq!(parse_expr("dequeue omg"), Ok(("", Command::Dequeue(id))));
+    assert_eq!(expr("dequeue omg"), Ok(("", Command::Dequeue(id))));
 }
 
 #[test]
