@@ -5,17 +5,11 @@ pub enum Value {
     String(String)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Identifier(pub String);
 
 #[derive(Debug, PartialEq)]
 pub enum Command {
-    Enqueue(String, Value),
-    Dequeue(String)
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Operation {
-    Enqueue,
-    Dequeue
+    Enqueue(Identifier, Value),
+    Dequeue(Identifier)
 }

@@ -1,4 +1,4 @@
-use anyhow::{ Result, anyhow };
+use anyhow::{anyhow, Result};
 use nom::{
     branch::alt,
     bytes::complete::*,
@@ -14,7 +14,7 @@ use nom::{
 mod string;
 use string::*;
 
-use crate::command::{Command, Identifier, Operation, Value};
+use crate::command::{Command, Identifier, Value};
 use crate::errors::*;
 
 fn int_to_value(input: &str) -> Result<Value> {
@@ -70,27 +70,30 @@ fn identifier(input: &str) -> IResult<&str, Identifier> {
     )(input)
 }
 
-fn operation(input: &str) -> IResult<&str, Operation> {
+fn parse_enqueue(input: &str) -> IResult<&str, Command> {
     map_res(
-        alt((tag("enqueue"), tag("dequeue"))),
-        |out: &str| -> Result<Operation> {
-            match out {
-                "enqueue" => Ok(Operation::Enqueue),
-                "dequeue" => Ok(Operation::Dequeue),
-                a => Err(anyhow!(SyntaxError::InvalidIdentifier(a.into())))
-            }
+        tuple((
+            tag("enqueue"),
+            multispace1,
+            identifier,
+            multispace1,
+            alt((decimal, float, string)),
+        )),
+        |(_, _, id, _, val): (&str, &str, Identifier, &str, Value)| -> Result<Command> {
+            Ok(Command::Enqueue(id, val))
         },
     )(input)
 }
 
-pub fn parse_command(input: &str) -> IResult<&str, (Operation, &str, Identifier, &str, Option<Value>)> {
-    tuple((
-        operation,
-        multispace1,
-        identifier,
-        multispace1,
-        opt(alt((decimal, float, string))),
-    ))(input)
+fn parse_dequeue(input: &str) -> IResult<&str, Command> {
+    map_res(
+        tuple((tag("dequeue"), multispace1, identifier)),
+        |(_, _, id): (&str, &str, Identifier)| -> Result<Command> { Ok(Command::Dequeue(id)) },
+    )(input)
+}
+
+pub fn parse(input: &str) -> IResult<&str, Command> {
+    alt((parse_enqueue, parse_dequeue))(input)
 }
 
 #[test]
@@ -117,17 +120,11 @@ fn float_test() {
 
 #[test]
 fn command_test() {
+    let id = Identifier(String::from("omg"));
+
     assert_eq!(
-        parse_command("enqueue omg 123"),
-        Ok((
-            "",
-            (
-                Operation::Enqueue,
-                " ",
-                Identifier("omg".into()),
-                " ",
-                Some(Value::Integer(123))
-            )
-        ))
+        parse("enqueue omg 123"),
+        Ok(("", Command::Enqueue(id.clone(), Value::Integer(123))))
     );
+    assert_eq!(parse("dequeue omg"), Ok(("", Command::Dequeue(id))));
 }
