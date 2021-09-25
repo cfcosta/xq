@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{ Result, anyhow };
 use nom::{
     branch::alt,
     bytes::complete::*,
@@ -14,7 +14,8 @@ use nom::{
 mod string;
 use string::*;
 
-use crate::command::{Command, Operation, Value};
+use crate::command::{Command, Identifier, Operation, Value};
+use crate::errors::*;
 
 fn int_to_value(input: &str) -> Result<Value> {
     Ok(Value::Integer(i64::from_str_radix(input, 10)?))
@@ -53,24 +54,42 @@ fn float(input: &str) -> IResult<&str, Value> {
     )(input)
 }
 
-pub fn identifier(input: &str) -> IResult<&str, &str> {
-    recognize(pair(
-        alt((alpha1, tag("_"))),
-        many0(alt((alphanumeric1, tag("_")))),
-    ))(input)
+fn string(input: &str) -> IResult<&str, Value> {
+    map_res(string::parse_string, |out: String| -> Result<Value> {
+        Ok(Value::String(out))
+    })(input)
 }
 
-pub fn operation(input: &str) -> IResult<&str, &str> {
-    alt((tag("enqueue"), tag("dequeue")))(input)
+fn identifier(input: &str) -> IResult<&str, Identifier> {
+    map_res(
+        recognize(pair(
+            alt((alpha1, tag("_"))),
+            many0(alt((alphanumeric1, tag("_")))),
+        )),
+        |out: &str| -> Result<Identifier> { Ok(Identifier(out.into())) },
+    )(input)
 }
 
-pub fn command(input: &str) -> IResult<&str, (&str, &str, &str, &str, Value)> {
+fn operation(input: &str) -> IResult<&str, Operation> {
+    map_res(
+        alt((tag("enqueue"), tag("dequeue"))),
+        |out: &str| -> Result<Operation> {
+            match out {
+                "enqueue" => Ok(Operation::Enqueue),
+                "dequeue" => Ok(Operation::Dequeue),
+                a => Err(anyhow!(SyntaxError::InvalidIdentifier(a.into())))
+            }
+        },
+    )(input)
+}
+
+pub fn parse_command(input: &str) -> IResult<&str, (Operation, &str, Identifier, &str, Value)> {
     tuple((
         operation,
         multispace1,
         identifier,
         multispace1,
-        alt((decimal, float)),
+        alt((decimal, float, string)),
     ))(input)
 }
 
@@ -99,7 +118,16 @@ fn float_test() {
 #[test]
 fn command_test() {
     assert_eq!(
-        command("enqueue omg 123"),
-        Ok(("", ("enqueue", " ", "omg", " ", Value::Integer(123))))
+        parse_command("enqueue omg 123"),
+        Ok((
+            "",
+            (
+                Operation::Enqueue,
+                " ",
+                Identifier("omg".into()),
+                " ",
+                Value::Integer(123)
+            )
+        ))
     );
 }
