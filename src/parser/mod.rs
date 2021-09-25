@@ -92,8 +92,12 @@ fn parse_dequeue(input: &str) -> IResult<&str, Command> {
     )(input)
 }
 
-pub fn parse(input: &str) -> IResult<&str, Command> {
+pub fn parse_expr(input: &str) -> IResult<&str, Command> {
     alt((parse_enqueue, parse_dequeue))(input)
+}
+
+pub fn parse(input: &str) -> IResult<&str, Vec<Command>> {
+    many1(terminated(parse_expr, opt(tag("\r\n"))))(input)
 }
 
 #[test]
@@ -119,12 +123,25 @@ fn float_test() {
 }
 
 #[test]
-fn command_test() {
+fn expr_test() {
     let id = Identifier(String::from("omg"));
 
     assert_eq!(
-        parse("enqueue omg 123"),
+        parse_expr("enqueue omg 123"),
         Ok(("", Command::Enqueue(id.clone(), Value::Integer(123))))
     );
-    assert_eq!(parse("dequeue omg"), Ok(("", Command::Dequeue(id))));
+    assert_eq!(parse_expr("dequeue omg"), Ok(("", Command::Dequeue(id))));
+}
+
+#[test]
+fn program_test() {
+    let id = Identifier(String::from("omg"));
+
+    assert_eq!(
+        parse("enqueue omg 123\r\ndequeue omg"),
+        Ok(("", vec![
+            Command::Enqueue(id.clone(), Value::Integer(123)),
+            Command::Dequeue(id.clone())
+        ]))
+    );
 }
