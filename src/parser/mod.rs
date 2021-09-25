@@ -83,13 +83,13 @@ fn operation(input: &str) -> IResult<&str, Operation> {
     )(input)
 }
 
-pub fn parse_command(input: &str) -> IResult<&str, (Operation, &str, Identifier, &str, Value)> {
+pub fn parse_command(input: &str) -> IResult<&str, (Operation, &str, Identifier, &str, Option<Value>)> {
     tuple((
         operation,
         multispace1,
         identifier,
         multispace1,
-        alt((decimal, float, string)),
+        opt(alt((decimal, float, string))),
     ))(input)
 }
 
@@ -126,7 +126,7 @@ fn command_test() {
                 " ",
                 Identifier("omg".into()),
                 " ",
-                Value::Integer(123)
+                Some(Value::Integer(123))
             )
         ))
     );
