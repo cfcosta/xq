@@ -1,21 +1,17 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use nom::{
     branch::alt,
     bytes::complete::*,
     character::complete::*,
     combinator::*,
-    error::ParseError,
     multi::{many0, many1},
-    number::complete::*,
-    sequence::{delimited, pair, preceded, terminated, tuple},
+    sequence::{pair, preceded, terminated, tuple},
     IResult,
 };
 
 mod string;
-use string::*;
 
 use crate::command::{Command, Identifier, Value};
-use crate::errors::*;
 
 fn int_to_value(input: &str) -> Result<Value> {
     Ok(Value::Integer(i64::from_str_radix(input, 10)?))
