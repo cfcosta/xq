@@ -18,3 +18,9 @@ pub enum DataError {
         got: Option<String>
     },
 }
+
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DatabaseError {
+    #[error("Failed to initialize database")]
+    FailedInitialize,
+}

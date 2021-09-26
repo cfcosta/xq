@@ -1,6 +1,7 @@
+use serde::{Serialize, Deserialize};
 use std::fmt;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum Value {
     Integer(i64),
     Float(f64),
@@ -17,7 +18,7 @@ impl fmt::Display for Value {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, PartialOrd, Ord, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, PartialOrd, Ord, Eq, Hash)]
 pub struct Identifier(pub String);
 
 impl fmt::Display for Identifier {
@@ -26,7 +27,7 @@ impl fmt::Display for Identifier {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum Command {
     Enqueue(Identifier, Value),
     Dequeue(Identifier),

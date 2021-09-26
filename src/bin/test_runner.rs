@@ -5,7 +5,7 @@ use anyhow::{ Result, bail };
 use structopt::StructOpt;
 use xq::{
     parser,
-    storage::{MemStore, Storage},
+    storage::{DbStorage, Storage},
     types::*,
     errors::*
 };
@@ -21,7 +21,8 @@ enum CommandResult {
     Val(Value),
 }
 
-fn run_command(storage: &mut MemStore, command: Command) -> Result<CommandResult> {
+fn run_command(storage: &mut dyn Storage, command: Command) -> Result<CommandResult> {
+    println!("{:?}", &command);
     match command {
         Command::Enqueue(key, value) => {
             storage.enqueue(key, value)?;
@@ -69,12 +70,19 @@ fn run_command(storage: &mut MemStore, command: Command) -> Result<CommandResult
 fn main() -> Result<()> {
     let options = Options::from_args();
     let contents = fs::read_to_string(options.file)?;
-    let mut storage = MemStore::new();
+    let mut storage = DbStorage::init()?;
 
     let commands = parser::parse(&contents)?;
 
     for command in commands {
-        let _ = run_command(&mut storage, command)?;
+        let res = run_command(&mut storage, command);
+
+        if res.is_err() {
+            storage.cleanup()?;
+            res?;
+
+            break;
+        }
     }
 
     println!("OK");
