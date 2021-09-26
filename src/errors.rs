@@ -10,4 +10,11 @@ pub enum SyntaxError {
 pub enum DataError {
     #[error("Tried to dequeue from an empty queue: {0}")]
     EmptyQueue(String),
+
+    #[error("Failed assertion: {command}\n  expected: {expected}\n  got: {got:?}")]
+    FailedAssertion {
+        command: String,
+        expected: String,
+        got: Option<String>
+    },
 }

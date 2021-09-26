@@ -5,7 +5,7 @@ use nom::{
     character::complete::*,
     combinator::*,
     multi::{many0, many1},
-    sequence::{pair, preceded, terminated, tuple},
+    sequence::{delimited, pair, preceded, terminated, tuple},
     IResult,
 };
 
@@ -67,15 +67,13 @@ fn identifier(input: &str) -> IResult<&str, Identifier> {
     )(input)
 }
 
+fn val(input: &str) -> IResult<&str, Value> {
+    alt((decimal, float, string))(input)
+}
+
 fn enqueue(input: &str) -> IResult<&str, Command> {
     map_res(
-        tuple((
-            tag("enqueue"),
-            multispace1,
-            identifier,
-            multispace1,
-            alt((decimal, float, string)),
-        )),
+        tuple((tag("enqueue"), multispace1, identifier, multispace1, val)),
         |(_, _, id, _, val): (&str, &str, Identifier, &str, Value)| -> Result<Command> {
             Ok(Command::Enqueue(id, val))
         },
@@ -103,8 +101,20 @@ fn peek(input: &str) -> IResult<&str, Command> {
     )(input)
 }
 
+fn assert(input: &str) -> IResult<&str, Command> {
+    let inner = delimited(tag("("), expr, tag(")"));
+    let with_spaces = delimited(multispace1, inner, multispace1);
+
+    map_res(
+        tuple((tag("assert"), with_spaces, val)),
+        |(_, cmd, val): (&str, Command, Value)| -> Result<Command> {
+            Ok(Command::Assert(Box::new(cmd), val))
+        },
+    )(input)
+}
+
 pub fn expr(input: &str) -> IResult<&str, Command> {
-    complete(alt((enqueue, dequeue, length, peek)))(input)
+    complete(alt((enqueue, dequeue, length, peek, assert)))(input)
 }
 
 pub fn program(input: &str) -> IResult<&str, Vec<Command>> {
@@ -149,7 +159,11 @@ fn expr_test() {
     );
     assert_eq!(expr("dequeue omg"), Ok(("", Command::Dequeue(id.clone()))));
     assert_eq!(expr("length omg"), Ok(("", Command::Length(id.clone()))));
-    assert_eq!(expr("peek omg"), Ok(("", Command::Peek(id))));
+    assert_eq!(expr("peek omg"), Ok(("", Command::Peek(id.clone()))));
+    assert_eq!(
+        expr("assert (peek omg) 1"),
+        Ok(("", Command::Assert(Box::new(Command::Peek(id)), Value::Integer(1))))
+    );
 }
 
 #[test]

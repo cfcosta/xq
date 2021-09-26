@@ -32,4 +32,5 @@ pub enum Command {
     Dequeue(Identifier),
     Length(Identifier),
     Peek(Identifier),
+    Assert(Box<Command>, Value)
 }

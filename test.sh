@@ -7,3 +7,4 @@ run_test() {
 
 cargo build --release
 run_test syntax
+run_test asserts

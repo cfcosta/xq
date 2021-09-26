@@ -29,7 +29,7 @@ combinator library](https://github.com/Geal/nom).
   - [x] Dequeue
   - [x] Length
   - [x] Peek
-  - [ ] Assert
+  - [x] Assert
   - [ ] Raft-related calls
     - [ ] Append Entries
     - [ ] Request Vote
