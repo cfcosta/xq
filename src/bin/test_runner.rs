@@ -1,14 +1,18 @@
 use std::fs;
 use std::path::PathBuf;
 
-use anyhow::{ Result, anyhow };
+use anyhow::Result;
 use structopt::StructOpt;
-use xq::{parser, types::Command, storage::{MemStore,Storage}};
+use xq::{
+    parser,
+    storage::{MemStore, Storage},
+    types::Command,
+};
 
 #[derive(Clone, Debug, StructOpt)]
 pub struct Options {
     #[structopt(name = "FILE")]
-    file: PathBuf
+    file: PathBuf,
 }
 
 fn main() -> Result<()> {
@@ -16,14 +20,14 @@ fn main() -> Result<()> {
     let contents = fs::read_to_string(options.file)?;
     let mut storage = MemStore::new();
 
-    let (_, commands) = parser::parse(&contents).map_err(|_| anyhow!("Failed to parse program."))?;
+    let commands = parser::parse(&contents)?;
 
     for command in commands {
         match command {
             Command::Enqueue(key, value) => {
                 println!("[ENQUEUE] {}: {}", &key, &value);
                 storage.enqueue(key, value)?;
-            },
+            }
             Command::Dequeue(key) => {
                 let value = storage.dequeue(key.clone())?;
                 println!("[DEQUEUE] {}: {}", key, value);

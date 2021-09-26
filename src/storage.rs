@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
-use anyhow::{bail, Result, anyhow};
+use anyhow::{anyhow, bail, Result};
 
 use crate::errors::*;
 use crate::types::*;

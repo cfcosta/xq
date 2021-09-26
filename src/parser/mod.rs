@@ -11,6 +11,7 @@ use nom::{
 
 mod string;
 
+use crate::errors::*;
 use crate::types::{Command, Identifier, Value};
 
 fn int_to_value(input: &str) -> Result<Value> {
@@ -106,8 +107,14 @@ pub fn expr(input: &str) -> IResult<&str, Command> {
     complete(alt((enqueue, dequeue, length, peek)))(input)
 }
 
-pub fn parse(input: &str) -> IResult<&str, Vec<Command>> {
+pub fn program(input: &str) -> IResult<&str, Vec<Command>> {
     many1(terminated(expr, opt(alt((tag("\r\n"), tag("\n"))))))(input)
+}
+
+pub fn parse(input: &str) -> Result<Vec<Command>> {
+    let (_, prg) = program(input).map_err(|_| SyntaxError::ParseError)?;
+
+    Ok(prg)
 }
 
 #[test]
@@ -146,15 +153,17 @@ fn expr_test() {
 }
 
 #[test]
-fn program_test() {
+fn program_test() -> Result<()> {
     let id = Identifier(String::from("omg"));
 
     assert_eq!(
-        parse("enqueue omg 123\r\ndequeue omg\r\nlength omg"),
-        Ok(("", vec![
+        parse("enqueue omg 123\r\ndequeue omg\r\nlength omg")?,
+        vec![
             Command::Enqueue(id.clone(), Value::Integer(123)),
             Command::Dequeue(id.clone()),
             Command::Length(id.clone())
-        ]))
+        ]
     );
+
+    Ok(())
 }

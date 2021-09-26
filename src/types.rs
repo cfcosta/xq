@@ -4,7 +4,7 @@ use std::fmt;
 pub enum Value {
     Integer(i64),
     Float(f64),
-    String(String)
+    String(String),
 }
 
 impl fmt::Display for Value {
@@ -12,9 +12,8 @@ impl fmt::Display for Value {
         match self {
             Value::Integer(v) => write!(f, "{}", v),
             Value::Float(v) => write!(f, "{}", v),
-            Value::String(v) => write!(f, "{}", v)
+            Value::String(v) => write!(f, "{}", v),
         }
-        
     }
 }
 
@@ -32,5 +31,5 @@ pub enum Command {
     Enqueue(Identifier, Value),
     Dequeue(Identifier),
     Length(Identifier),
-    Peek(Identifier)
+    Peek(Identifier),
 }
