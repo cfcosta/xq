@@ -35,7 +35,7 @@ combinator library](https://github.com/Geal/nom).
     - [ ] Request Vote
     - [ ] Install Snapshot
 - [ ] Storage
-  - [ ] Simple in-memory Storage
+  - [x] Simple in-memory Storage
   - [ ] RocksDB based storage
   - [ ] Snapshotting
 - [ ] Networking
