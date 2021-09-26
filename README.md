@@ -27,7 +27,8 @@ combinator library](https://github.com/Geal/nom).
 - [ ] Parser
   - [x] Enqueue
   - [x] Dequeue
-  - [ ] Length
+  - [x] Length
+  - [ ] Peek
   - [ ] Assert
   - [ ] Raft-related calls
     - [ ] Append Entries
@@ -53,15 +54,28 @@ combinator library](https://github.com/Geal/nom).
 
 ## Syntax Reference
 
-- Enqueue
-  ```
-  enqueue key 1
-  enqueue key 1.12
-  enqueue key 1.16e12
-  enqueue key "string key"
-  ```
+### Enqueue
 
-- Dequeue
-  ```
-  dequeue key
-  ```
+Adds a value to a queue. If the queue does not exist, create it.
+
+```
+enqueue key 1
+enqueue key 1.12
+enqueue key 1.16e12
+enqueue key "string key"
+```
+
+### Dequeue
+
+Removes a value from a queue. If the queue is empty or not initialized, returns an error.
+```
+dequeue key
+```
+
+### Length
+
+Returns the length of a current queue. Returns 0 if the queue is not initialized.
+
+```
+length key
+```

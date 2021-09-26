@@ -30,5 +30,6 @@ impl fmt::Display for Identifier {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Command {
     Enqueue(Identifier, Value),
-    Dequeue(Identifier)
+    Dequeue(Identifier),
+    Length(Identifier)
 }

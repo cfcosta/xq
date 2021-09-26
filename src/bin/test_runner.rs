@@ -28,6 +28,10 @@ fn main() -> Result<()> {
                 let value = storage.dequeue(key.clone())?;
                 println!("[DEQUEUE] {}: {}", key, value);
             }
+            Command::Length(key) => {
+                let value = storage.length(key.clone())?;
+                println!("[LENGTH] {}: {}", key, value);
+            }
         }
     }
 

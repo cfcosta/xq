@@ -8,6 +8,7 @@ use crate::errors::*;
 pub trait Storage {
     fn enqueue(&mut self, id: Identifier, value: Value) -> Result<()>;
     fn dequeue(&mut self, id: Identifier) -> Result<Value>;
+    fn length(&self, id: Identifier) -> Result<usize>;
 }
 
 #[derive(Debug)]
@@ -47,5 +48,9 @@ impl Storage for MemStore {
             },
             None => bail!(DataError::EmptyQueue(id.0)),
         }
+    }
+
+    fn length(&self, id: Identifier) -> Result<usize> {
+        Ok(self.map.get(&id).map(|x| x.len()).unwrap_or(0))
     }
 }

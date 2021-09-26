@@ -88,8 +88,15 @@ fn dequeue(input: &str) -> IResult<&str, Command> {
     )(input)
 }
 
+fn length(input: &str) -> IResult<&str, Command> {
+    map_res(
+        tuple((tag("length"), multispace1, identifier)),
+        |(_, _, id): (&str, &str, Identifier)| -> Result<Command> { Ok(Command::Length(id)) },
+    )(input)
+}
+
 pub fn expr(input: &str) -> IResult<&str, Command> {
-    complete(alt((enqueue, dequeue)))(input)
+    complete(alt((enqueue, dequeue, length)))(input)
 }
 
 pub fn parse(input: &str) -> IResult<&str, Vec<Command>> {
@@ -126,7 +133,8 @@ fn expr_test() {
         expr("enqueue omg 123"),
         Ok(("", Command::Enqueue(id.clone(), Value::Integer(123))))
     );
-    assert_eq!(expr("dequeue omg"), Ok(("", Command::Dequeue(id))));
+    assert_eq!(expr("dequeue omg"), Ok(("", Command::Dequeue(id.clone()))));
+    assert_eq!(expr("length omg"), Ok(("", Command::Length(id))));
 }
 
 #[test]
@@ -134,10 +142,11 @@ fn program_test() {
     let id = Identifier(String::from("omg"));
 
     assert_eq!(
-        parse("enqueue omg 123\r\ndequeue omg"),
+        parse("enqueue omg 123\r\ndequeue omg\r\nlength omg"),
         Ok(("", vec![
             Command::Enqueue(id.clone(), Value::Integer(123)),
-            Command::Dequeue(id.clone())
+            Command::Dequeue(id.clone()),
+            Command::Length(id.clone())
         ]))
     );
 }
