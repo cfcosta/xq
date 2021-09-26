@@ -52,6 +52,29 @@ combinator library](https://github.com/Geal/nom).
 - [ ] Lua Scripting
 - [ ] Language Server
 
+## Developing
+
+Default Rust instructions apply here:
+
+```sh
+git clone git@github.com:cfcosta/xq
+cd xq
+cargo build
+```
+
+To run tests:
+
+```sh
+cargo test
+```
+
+The project also contains its own test runner that starts a new instance of the
+storage, runs a sequence of commands in a file, and fails if there are any errors:
+
+```sh
+./test.sh
+```
+
 ## Syntax Reference
 
 ### Enqueue
