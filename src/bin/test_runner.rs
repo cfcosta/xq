@@ -20,7 +20,10 @@ fn main() -> Result<()> {
 
     for command in commands {
         match command {
-            Command::Enqueue(key, value) => storage.enqueue(key, value)?,
+            Command::Enqueue(key, value) => {
+                println!("[ENQUEUE] {}: {}", &key, &value);
+                storage.enqueue(key, value)?;
+            },
             Command::Dequeue(key) => {
                 let value = storage.dequeue(key.clone())?;
                 println!("[DEQUEUE] {}: {}", key, value);
