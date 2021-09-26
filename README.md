@@ -75,6 +75,13 @@ storage, runs a sequence of commands in a file, and fails if there are any error
 ./test.sh
 ```
 
+## Security and Reliability Assumptions
+
+- As with all applications that use Raft, we assume that the actors are
+  well-intentioned and not compromised.
+- The cluster should keep running reliably as long as at least 51% of the nodes
+  are up.
+
 ## Syntax Reference
 
 ### Enqueue
