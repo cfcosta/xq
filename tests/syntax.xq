@@ -11,6 +11,8 @@ enqueue a 2
 enqueue a 3
 length a
 dequeue a
+peek a
 dequeue a
 dequeue a
+peek a
 dequeue a
