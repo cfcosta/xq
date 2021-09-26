@@ -1,7 +1,7 @@
 # Xq
 
 Please remember that this is not even alpha-quality software. Even if at some
-point it does get to that level of production-readyness, it's scope is still
+point it does get to that level of production-readiness, it's scope is still
 too small to be of any use to anyone.
 
 Consider this a study/reference project for someone else that wants to do the
