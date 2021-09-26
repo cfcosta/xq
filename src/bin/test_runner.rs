@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use anyhow::{ Result, anyhow };
 use structopt::StructOpt;
-use xq::{parser, command::Command, storage::{MemStore,Storage}};
+use xq::{parser, types::Command, storage::{MemStore,Storage}};
 
 #[derive(Clone, Debug, StructOpt)]
 pub struct Options {

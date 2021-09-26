@@ -11,7 +11,7 @@ use nom::{
 
 mod string;
 
-use crate::command::{Command, Identifier, Value};
+use crate::types::{Command, Identifier, Value};
 
 fn int_to_value(input: &str) -> Result<Value> {
     Ok(Value::Integer(i64::from_str_radix(input, 10)?))
