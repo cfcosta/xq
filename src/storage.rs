@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::{anyhow, bail, Result};
-use rocksdb::{Options, DB};
+use rocksdb::{Options, WriteBatch, DB};
 
 use crate::errors::*;
 use crate::types::*;
@@ -36,18 +36,23 @@ impl Storage for DbStorage {
 
         let begin_key = format!("{}:begin", &id.0);
         let end_key = format!("{}:end", &id.0);
+        let mut batch = WriteBatch::default();
 
         match self.db.get(&end_key)? {
             Some(end) => {
                 let next = bincode::deserialize::<u64>(&end)? + 1;
-                db.put(&end_key, bincode::serialize(&next)?)?;
-                db.put(&format!("{}:{}", &id.0, next), bincode::serialize(&value)?)?;
+
+                batch.put(&end_key, bincode::serialize(&next)?);
+                batch.put(&format!("{}:{}", &id.0, next), bincode::serialize(&value)?);
+                db.write(batch)?;
+
                 Ok(())
             }
             None => {
-                db.put(&begin_key, bincode::serialize(&0)?)?;
-                db.put(&end_key, bincode::serialize(&0)?)?;
-                db.put(&format!("{}:{}", &id.0, 0), bincode::serialize(&value)?)?;
+                batch.put(&begin_key, bincode::serialize(&0)?);
+                batch.put(&end_key, bincode::serialize(&0)?);
+                batch.put(&format!("{}:{}", &id.0, 0), bincode::serialize(&value)?);
+                db.write(batch)?;
 
                 Ok(())
             }
