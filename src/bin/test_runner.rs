@@ -32,6 +32,10 @@ fn main() -> Result<()> {
                 let value = storage.length(key.clone())?;
                 println!("[LENGTH] {}: {}", key, value);
             }
+            Command::Peek(key) => {
+                let value = storage.peek(key.clone())?;
+                println!("[PEEK] {}: {}", key, value);
+            }
         }
     }
 

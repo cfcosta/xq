@@ -28,7 +28,7 @@ combinator library](https://github.com/Geal/nom).
   - [x] Enqueue
   - [x] Dequeue
   - [x] Length
-  - [ ] Peek
+  - [x] Peek
   - [ ] Assert
   - [ ] Raft-related calls
     - [ ] Append Entries

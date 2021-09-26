@@ -95,8 +95,15 @@ fn length(input: &str) -> IResult<&str, Command> {
     )(input)
 }
 
+fn peek(input: &str) -> IResult<&str, Command> {
+    map_res(
+        tuple((tag("peek"), multispace1, identifier)),
+        |(_, _, id): (&str, &str, Identifier)| -> Result<Command> { Ok(Command::Peek(id)) },
+    )(input)
+}
+
 pub fn expr(input: &str) -> IResult<&str, Command> {
-    complete(alt((enqueue, dequeue, length)))(input)
+    complete(alt((enqueue, dequeue, length, peek)))(input)
 }
 
 pub fn parse(input: &str) -> IResult<&str, Vec<Command>> {
@@ -134,7 +141,8 @@ fn expr_test() {
         Ok(("", Command::Enqueue(id.clone(), Value::Integer(123))))
     );
     assert_eq!(expr("dequeue omg"), Ok(("", Command::Dequeue(id.clone()))));
-    assert_eq!(expr("length omg"), Ok(("", Command::Length(id))));
+    assert_eq!(expr("length omg"), Ok(("", Command::Length(id.clone()))));
+    assert_eq!(expr("peek omg"), Ok(("", Command::Peek(id))));
 }
 
 #[test]

@@ -1,14 +1,15 @@
 use std::collections::{HashMap, VecDeque};
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Result, anyhow};
 
-use crate::types::*;
 use crate::errors::*;
+use crate::types::*;
 
 pub trait Storage {
     fn enqueue(&mut self, id: Identifier, value: Value) -> Result<()>;
     fn dequeue(&mut self, id: Identifier) -> Result<Value>;
     fn length(&self, id: Identifier) -> Result<usize>;
+    fn peek(&self, id: Identifier) -> Result<&Value>;
 }
 
 #[derive(Debug)]
@@ -52,5 +53,13 @@ impl Storage for MemStore {
 
     fn length(&self, id: Identifier) -> Result<usize> {
         Ok(self.map.get(&id).map(|x| x.len()).unwrap_or(0))
+    }
+
+    fn peek(&self, id: Identifier) -> Result<&Value> {
+        self.map
+            .get(&id)
+            .ok_or(anyhow!(DataError::EmptyQueue(id.clone().0)))?
+            .front()
+            .ok_or(anyhow!(DataError::EmptyQueue(id.0)))
     }
 }
