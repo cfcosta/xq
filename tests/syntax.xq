@@ -1,4 +1,4 @@
-push a 1
-pop a
-push a "this"
-pop a
+enqueue a 1
+dequeue a
+enqueue a "this"
+dequeue a

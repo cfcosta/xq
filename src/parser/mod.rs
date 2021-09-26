@@ -93,7 +93,7 @@ pub fn expr(input: &str) -> IResult<&str, Command> {
 }
 
 pub fn parse(input: &str) -> IResult<&str, Vec<Command>> {
-    many1(terminated(expr, opt(tag("\r\n"))))(input)
+    many1(terminated(expr, opt(alt((tag("\r\n"), tag("\n"))))))(input)
 }
 
 #[test]
