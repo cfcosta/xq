@@ -3,8 +3,9 @@
 set -e
 
 run_test() {
-  echo "Running: tests/${1}.xq"
-  ./target/release/xq-test-runner "tests/${1}.xq"
+  PATH="$(mktemp -d)"
+  echo "Running: tests/${1}.xq -- Database Path: ${PATH}"
+  ./target/release/xq-test-runner -d "${PATH}" "tests/${1}.xq"
 }
 
 cargo build --release

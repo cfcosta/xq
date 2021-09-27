@@ -23,4 +23,6 @@ pub enum DataError {
 pub enum DatabaseError {
     #[error("Failed to initialize database")]
     FailedInitialize,
+    #[error("Failed to deserialize data")]
+    InvalidData,
 }

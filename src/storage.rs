@@ -18,22 +18,20 @@ pub struct DbStorage {
 }
 
 impl DbStorage {
-    pub fn init() -> Result<Self> {
+    pub fn init(path: &str) -> Result<Self> {
         Ok(Self {
-            db: Arc::new(DB::open_default("../dbxq").map_err(|_| DatabaseError::FailedInitialize)?),
+            db: Arc::new(DB::open_default(path).map_err(|_| DatabaseError::FailedInitialize)?),
         })
     }
 
-    pub fn cleanup(self) -> Result<()> {
-        DB::destroy(&Options::default(), "../dbxq")?;
+    pub fn cleanup(path: &str) -> Result<()> {
+        DB::destroy(&Options::default(), path)?;
         Ok(())
     }
 }
 
 impl Storage for DbStorage {
     fn enqueue(&mut self, id: Identifier, value: Value) -> Result<()> {
-        let db = self.db.clone();
-
         let begin_key = format!("{}:begin", &id.0);
         let end_key = format!("{}:end", &id.0);
         let mut batch = WriteBatch::default();
@@ -44,26 +42,23 @@ impl Storage for DbStorage {
 
                 batch.put(&end_key, bincode::serialize(&next)?);
                 batch.put(&format!("{}:{}", &id.0, next), bincode::serialize(&value)?);
-                db.write(batch)?;
-
-                Ok(())
             }
             None => {
                 batch.put(&begin_key, bincode::serialize(&0)?);
                 batch.put(&end_key, bincode::serialize(&0)?);
                 batch.put(&format!("{}:{}", &id.0, 0), bincode::serialize(&value)?);
-                db.write(batch)?;
-
-                Ok(())
             }
         }
+
+        self.db.write(batch)?;
+
+        Ok(())
     }
 
     fn dequeue(&mut self, id: Identifier) -> Result<Value> {
-        let db = self.db.clone();
         let begin_key = format!("{}:begin", &id.0);
 
-        match db.get(&begin_key)? {
+        match self.db.get(&begin_key)? {
             Some(begin_data) => {
                 let begin = bincode::deserialize::<u64>(&begin_data)?;
                 let next = begin + 1;
@@ -73,7 +68,7 @@ impl Storage for DbStorage {
                     .get(&format!("{}:{}", &id.0, begin))?
                     .ok_or(anyhow!(DataError::EmptyQueue(id.0)))?;
 
-                db.put(&begin_key, bincode::serialize(&next)?)?;
+                self.db.put(&begin_key, bincode::serialize(&next)?)?;
 
                 Ok(bincode::deserialize::<Value>(&data)?)
             }
@@ -88,7 +83,7 @@ impl Storage for DbStorage {
         let begin_key = format!("{}:begin", &id.0);
         let end_key = format!("{}:end", &id.0);
 
-        match db.get(&begin_key)? {
+        match self.db.get(&begin_key)? {
             Some(begin_data) => {
                 let begin = bincode::deserialize::<u64>(&begin_data)?;
                 let end_data = db

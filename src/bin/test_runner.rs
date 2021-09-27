@@ -14,6 +14,9 @@ use xq::{
 pub struct Options {
     #[structopt(name = "FILE")]
     file: PathBuf,
+
+    #[structopt(short = "d", long = "database-path")]
+    db_path: String,
 }
 
 enum CommandResult {
@@ -70,7 +73,7 @@ fn run_command(storage: &mut dyn Storage, command: Command) -> Result<CommandRes
 fn main() -> Result<()> {
     let options = Options::from_args();
     let contents = fs::read_to_string(options.file)?;
-    let mut storage = DbStorage::init()?;
+    let mut storage = DbStorage::init(&options.db_path)?;
 
     let commands = parser::parse(&contents)?;
 
@@ -78,12 +81,14 @@ fn main() -> Result<()> {
         let res = run_command(&mut storage, command);
 
         if res.is_err() {
-            storage.cleanup()?;
+            DbStorage::cleanup(&format!("{}", &options.db_path))?;
             res?;
 
             break;
         }
     }
+
+    DbStorage::cleanup(&format!("{}", &options.db_path))?;
 
     println!("OK");
 
