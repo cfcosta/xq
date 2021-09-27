@@ -13,7 +13,7 @@ impl fmt::Display for Value {
         match self {
             Value::Integer(v) => write!(f, "{}", v),
             Value::Float(v) => write!(f, "{}", v),
-            Value::String(v) => write!(f, "{}", v),
+            Value::String(v) => write!(f, "{:?}", v),
         }
     }
 }
@@ -34,4 +34,16 @@ pub enum Command {
     Length(Identifier),
     Peek(Identifier),
     Assert(Box<Command>, Value)
+}
+
+impl fmt::Display for Command {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Command::Enqueue(id, value) => write!(f, "enqueue {} {}", &id.0, &value),
+            Command::Dequeue(id) => write!(f, "dequeue {}", &id.0),
+            Command::Length(id) => write!(f, "length {}", &id.0),
+            Command::Peek(id) => write!(f, "peek {}", &id.0),
+            Command::Assert(cmd, value) => write!(f, "assert ({}) {}", cmd, &value),
+        }
+    }
 }
