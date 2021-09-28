@@ -25,7 +25,7 @@ enum CommandResult {
 }
 
 fn run_command(storage: &mut dyn Storage, command: Command) -> Result<CommandResult> {
-    println!("{:?}", &command);
+    println!("{}", &command);
     match command {
         Command::Enqueue(key, value) => {
             storage.enqueue(key, value)?;
