@@ -36,7 +36,7 @@ combinator library](https://github.com/Geal/nom).
     - [ ] Install Snapshot
 - [ ] Storage
   - [x] Simple in-memory Storage
-  - [ ] RocksDB based storage
+  - [-] RocksDB based storage (`currently not working, running on CI but not failing build`)
   - [ ] Snapshotting
 - [ ] Networking
   - [ ] TCP/UDP Server/Daemon
