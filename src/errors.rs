@@ -22,5 +22,13 @@ pub enum DataError {
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum StorageError {
     #[error("Failed to initialize storage")]
-    FailedInitialize
+    FailedInitialize,
+    #[error("Failed to get lock on the storage")]
+    FailedLock
+}
+
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
+pub enum ClientError {
+    #[error("Connection error with the server")]
+    ConnectionError,
 }

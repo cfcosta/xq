@@ -1,4 +1,5 @@
 use std::collections::{HashMap, VecDeque};
+use std::sync::{Arc, RwLock};
 
 use anyhow::{anyhow, bail, Result};
 use structopt::StructOpt;
@@ -10,22 +11,24 @@ use crate::types::*;
 #[derive(Debug, Clone, StructOpt)]
 pub struct StorageOptions {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MemoryStorage {
-    map: HashMap<Identifier, VecDeque<Value>>,
+    map: Arc<RwLock<HashMap<Identifier, VecDeque<Value>>>>,
 }
 
 impl MemoryStorage {
     pub fn new() -> Self {
         Self {
-            map: HashMap::new(),
+            map: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 }
 
 impl StorageBackend for MemoryStorage {
-    fn enqueue(&mut self, id: Identifier, value: Value) -> Result<()> {
-        match self.map.get_mut(&id) {
+    fn enqueue(&self, id: Identifier, value: Value) -> Result<()> {
+        let mut map = self.map.write().map_err(|_| StorageError::FailedLock)?;
+
+        match map.get_mut(&id) {
             Some(v) => {
                 v.push_back(value);
             }
@@ -33,14 +36,16 @@ impl StorageBackend for MemoryStorage {
                 let mut deque = VecDeque::new();
                 deque.push_back(value);
 
-                self.map.insert(id, deque);
+                map.insert(id, deque);
             }
         }
         Ok(())
     }
 
-    fn dequeue(&mut self, id: Identifier) -> Result<Value> {
-        match self.map.get_mut(&id) {
+    fn dequeue(&self, id: Identifier) -> Result<Value> {
+        let mut map = self.map.write().map_err(|_| StorageError::FailedLock)?;
+
+        match map.get_mut(&id) {
             Some(q) => match q.pop_front() {
                 Some(v) => Ok(v),
                 None => bail!(DataError::EmptyQueue(id.0)),
@@ -50,12 +55,15 @@ impl StorageBackend for MemoryStorage {
     }
 
     fn length(&self, id: Identifier) -> Result<usize> {
-        Ok(self.map.get(&id).map(|x| x.len()).unwrap_or(0))
+        let map = self.map.read().map_err(|_| StorageError::FailedLock)?;
+
+        Ok(map.get(&id).map(|x| x.len()).unwrap_or(0))
     }
 
     fn peek(&self, id: Identifier) -> Result<Value> {
-        Ok(self
-            .map
+        let map = self.map.read().map_err(|_| StorageError::FailedLock)?;
+
+        Ok(map
             .get(&id)
             .ok_or(anyhow!(DataError::EmptyQueue(id.clone().0)))?
             .front()

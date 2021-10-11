@@ -46,7 +46,7 @@ impl RocksDBStorage {
 }
 
 impl StorageBackend for RocksDBStorage {
-    fn enqueue(&mut self, id: Identifier, value: Value) -> Result<()> {
+    fn enqueue(&self, id: Identifier, value: Value) -> Result<()> {
         let begin_key = format!("{}:begin", &id.0);
         let end_key = format!("{}:end", &id.0);
         let mut batch = WriteBatch::default();
@@ -72,7 +72,7 @@ impl StorageBackend for RocksDBStorage {
         Ok(())
     }
 
-    fn dequeue(&mut self, id: Identifier) -> Result<Value> {
+    fn dequeue(&self, id: Identifier) -> Result<Value> {
         let begin_key = format!("{}:begin", &id.0);
         let cf = self.db.cf_handle("data").ok_or(anyhow!(StorageError::FailedInitialize))?;
 
