@@ -4,20 +4,14 @@ use anyhow::{anyhow, bail, Result};
 
 use crate::errors::*;
 use crate::types::*;
-
-pub trait Storage {
-    fn enqueue(&mut self, id: Identifier, value: Value) -> Result<()>;
-    fn dequeue(&mut self, id: Identifier) -> Result<Value>;
-    fn length(&self, id: Identifier) -> Result<usize>;
-    fn peek(&self, id: Identifier) -> Result<&Value>;
-}
+use crate::storage::StorageBackend;
 
 #[derive(Debug)]
-pub struct MemStore {
+pub struct MemoryStorage {
     map: HashMap<Identifier, VecDeque<Value>>,
 }
 
-impl MemStore {
+impl MemoryStorage {
     pub fn new() -> Self {
         Self {
             map: HashMap::new(),
@@ -25,7 +19,7 @@ impl MemStore {
     }
 }
 
-impl Storage for MemStore {
+impl StorageBackend for MemoryStorage {
     fn enqueue(&mut self, id: Identifier, value: Value) -> Result<()> {
         match self.map.get_mut(&id) {
             Some(v) => {

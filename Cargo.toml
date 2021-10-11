@@ -12,3 +12,7 @@ thiserror = "1.0.29"
 [[bin]]
 name = "xq-test-runner"
 path = "src/bin/test_runner.rs"
+
+[features]
+default = ["memory-storage"]
+memory-storage = []
