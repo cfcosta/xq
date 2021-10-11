@@ -34,13 +34,18 @@ combinator library](https://github.com/Geal/nom).
     - [ ] Append Entries
     - [ ] Request Vote
     - [ ] Install Snapshot
+  - [ ] Error Reporting
 - [ ] Storage
   - [x] Simple in-memory Storage
-  - [-] RocksDB based storage (`currently not working, running on CI but not failing build`)
+  - [ ] RocksDB based storage (`available under a feature flag, currently not working`)
   - [ ] Snapshotting
 - [ ] Networking
-  - [ ] TCP/UDP Server/Daemon
-  - [ ] TCP/UDP Client
+  - [x] TCP Server/Daemon
+  - [ ] TCP Client
+    - [x] REPL
+    - [ ] Readline
+    - [ ] Syntax Highlithing
+    - [ ] Error Reporting
 - [ ] Raft Consensus
   - [ ] RPC Calls (Networking)
   - [ ] Storage
@@ -75,6 +80,26 @@ storage, runs a sequence of commands in a file, and fails if there are any error
 ./test.sh
 ```
 
+## Running
+
+### Server 
+
+To start the server:
+
+```
+cargo run --release --bin xqd
+```
+
+Server should be available at `localhost:8080`
+
+### Client 
+
+To connect to a server:
+
+```
+cargo run --release --bin xq -- 127.0.0.1:8080
+```
+
 ## Security and Reliability Assumptions
 
 - As with all applications that use Raft, we assume that the actors are
@@ -98,6 +123,7 @@ enqueue key "string key"
 ### Dequeue
 
 Removes a value from a queue. If the queue is empty or not initialized, returns an error.
+
 ```
 dequeue key
 ```
