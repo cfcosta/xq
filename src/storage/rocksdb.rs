@@ -14,6 +14,7 @@ pub struct StorageOptions {
     pub database_path: String
 }
 
+#[derive(Debug, Clone)]
 pub struct RocksDBStorage {
     db: Arc<DB>,
 }
@@ -45,8 +46,9 @@ impl RocksDBStorage {
     }
 }
 
+#[async_trait::async_trait]
 impl StorageBackend for RocksDBStorage {
-    fn enqueue(&self, id: Identifier, value: Value) -> Result<()> {
+    async fn enqueue(&self, id: Identifier, value: Value) -> Result<()> {
         let begin_key = format!("{}:begin", &id.0);
         let end_key = format!("{}:end", &id.0);
         let mut batch = WriteBatch::default();
@@ -72,7 +74,7 @@ impl StorageBackend for RocksDBStorage {
         Ok(())
     }
 
-    fn dequeue(&self, id: Identifier) -> Result<Value> {
+    async fn dequeue(&self, id: Identifier) -> Result<Value> {
         let begin_key = format!("{}:begin", &id.0);
         let cf = self.db.cf_handle("data").ok_or(anyhow!(StorageError::FailedInitialize))?;
 
@@ -96,7 +98,7 @@ impl StorageBackend for RocksDBStorage {
         }
     }
 
-    fn length(&self, id: Identifier) -> Result<usize> {
+    async fn length(&self, id: Identifier) -> Result<usize> {
         let db = self.db.clone();
         let begin_key = format!("{}:begin", &id.0);
         let end_key = format!("{}:end", &id.0);
@@ -116,7 +118,7 @@ impl StorageBackend for RocksDBStorage {
         }
     }
 
-    fn peek(&self, id: Identifier) -> Result<Value> {
+    async fn peek(&self, id: Identifier) -> Result<Value> {
         let db = self.db.clone();
         let begin_key = format!("{}:begin", &id.0);
         let cf = self.db.cf_handle("data").ok_or(anyhow!(StorageError::FailedInitialize))?;

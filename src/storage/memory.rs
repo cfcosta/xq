@@ -24,8 +24,9 @@ impl MemoryStorage {
     }
 }
 
+#[async_trait::async_trait]
 impl StorageBackend for MemoryStorage {
-    fn enqueue(&self, id: Identifier, value: Value) -> Result<()> {
+    async fn enqueue(&self, id: Identifier, value: Value) -> Result<()> {
         let mut map = self.map.write().map_err(|_| StorageError::FailedLock)?;
 
         match map.get_mut(&id) {
@@ -42,7 +43,7 @@ impl StorageBackend for MemoryStorage {
         Ok(())
     }
 
-    fn dequeue(&self, id: Identifier) -> Result<Value> {
+    async fn dequeue(&self, id: Identifier) -> Result<Value> {
         let mut map = self.map.write().map_err(|_| StorageError::FailedLock)?;
 
         match map.get_mut(&id) {
@@ -54,13 +55,13 @@ impl StorageBackend for MemoryStorage {
         }
     }
 
-    fn length(&self, id: Identifier) -> Result<usize> {
+    async fn length(&self, id: Identifier) -> Result<usize> {
         let map = self.map.read().map_err(|_| StorageError::FailedLock)?;
 
         Ok(map.get(&id).map(|x| x.len()).unwrap_or(0))
     }
 
-    fn peek(&self, id: Identifier) -> Result<Value> {
+    async fn peek(&self, id: Identifier) -> Result<Value> {
         let map = self.map.read().map_err(|_| StorageError::FailedLock)?;
 
         Ok(map

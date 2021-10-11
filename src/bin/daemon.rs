@@ -1,16 +1,25 @@
-use std::{ env, str };
+use std::str;
 
 use anyhow::Result;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{ TcpListener, TcpStream };
+use structopt::StructOpt;
 
 use xq::{
     parser,
-    storage::{ Storage, StorageBackend },
+    storage::{ Storage, StorageBackend, StorageOptions },
     run_command, CommandResult
 };
 
-async fn run_server<T: StorageBackend + Clone>(mut socket: TcpStream, mut storage: T) -> Result<()> {
+#[derive(Clone, Debug, StructOpt)]
+pub struct Options {
+    #[structopt(name = "ADDRESS", default_value = "127.0.0.1:8080")]
+    addr: String,
+    #[structopt(flatten)]
+    storage: StorageOptions,
+}
+
+async fn run_server<T: StorageBackend + Send + Sync>(mut socket: TcpStream, storage: T) -> Result<()> {
         let mut buf = vec![0;1024];
 
         loop {
@@ -18,7 +27,7 @@ async fn run_server<T: StorageBackend + Clone>(mut socket: TcpStream, mut storag
             let commands = parser::parse(&str::from_utf8(&buf)?)?;
 
             for command in commands {
-                let res = run_command(&mut storage, command)?;
+                let res = run_command(&storage, command).await?;
 
                 match res {
                     CommandResult::Empty => socket.write_all(b"OK\n").await?,
@@ -30,15 +39,16 @@ async fn run_server<T: StorageBackend + Clone>(mut socket: TcpStream, mut storag
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let options = Options::from_args();
+
     #[cfg(feature = "memory-storage")]
     let storage = Storage::new();
     #[cfg(feature = "rocksdb-storage")]
     let storage = Storage::init(&options.storage.database_path)?;
 
-    let addr = env::args().nth(1).unwrap_or_else(|| "127.0.0.1:8080".to_string());
-    let listener = TcpListener::bind(&addr).await?;
+    let listener = TcpListener::bind(&options.addr).await?;
 
-    println!("Listening on {}", addr);
+    println!("Listening on {}", &options.addr);
 
     loop {
         let (socket, _) = listener.accept().await?;

@@ -18,19 +18,20 @@ pub struct Options {
     storage: StorageOptions,
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let options = Options::from_args();
     let contents = fs::read_to_string(options.file)?;
 
     #[cfg(feature = "memory-storage")]
-    let mut storage = Storage::new();
+    let storage = Storage::new();
     #[cfg(feature = "rocksdb-storage")]
-    let mut storage = Storage::init(&options.storage.database_path)?;
+    let storage = Storage::init(&options.storage.database_path)?;
 
     let commands = parser::parse(&contents)?;
 
     for command in commands {
-        let _ = run_command(&mut storage, command)?;
+        let _ = run_command(&storage, command).await?;
     }
 
     println!("OK");

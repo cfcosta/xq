@@ -1,3 +1,4 @@
+use async_recursion::async_recursion;
 use anyhow::{bail, Result};
 
 pub mod errors;
@@ -14,28 +15,29 @@ pub enum CommandResult {
     Val(Value),
 }
 
-pub fn run_command(storage: &mut dyn StorageBackend, command: Command) -> Result<CommandResult> {
+#[async_recursion]
+pub async fn run_command<T: StorageBackend + Send + Sync>(storage: &T, command: Command) -> Result<CommandResult> {
     match command {
         Command::Enqueue(key, value) => {
-            storage.enqueue(key, value)?;
+            storage.enqueue(key, value).await?;
             Ok(CommandResult::Empty)
         }
         Command::Dequeue(key) => {
-            let value = storage.dequeue(key.clone())?;
+            let value = storage.dequeue(key.clone()).await?;
             Ok(CommandResult::Val(value))
         }
         Command::Length(key) => {
-            let value = storage.length(key.clone())?;
+            let value = storage.length(key.clone()).await?;
             Ok(CommandResult::Val(Value::Integer(value as i64)))
         }
         Command::Peek(key) => {
-            let value = storage.peek(key.clone())?;
+            let value = storage.peek(key.clone()).await?;
             Ok(CommandResult::Val(value.clone()))
         }
         Command::Assert(cmd, val) => {
             let cmd_desc = format!("{:?}", &cmd);
 
-            match run_command(storage, *cmd)? {
+            match run_command(storage, *cmd).await? {
                 CommandResult::Val(result) => {
                     if result == val {
                         return Ok(CommandResult::Empty);
