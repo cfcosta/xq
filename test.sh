@@ -6,7 +6,7 @@ STORAGE="${1:-memory}"
 
 run_test() {
   if [[ ${STORAGE} == "rocksdb" ]]; then
-    PATH="$(mktemp -d)"
+    PATH="$(mktemp -du)"
     echo "Running: tests/${1}.xq -- Database Path: ${PATH}"
 
     ./target/release/xq-test-runner -d "${PATH}" "tests/${1}.xq"
@@ -19,3 +19,4 @@ run_test() {
 cargo build --no-default-features --features ${STORAGE}-storage --release
 run_test syntax
 run_test asserts
+run_test stress
