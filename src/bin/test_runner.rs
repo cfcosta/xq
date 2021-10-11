@@ -5,7 +5,7 @@ use anyhow::{ Result, bail };
 use structopt::StructOpt;
 use xq::{
     parser,
-    storage::{ StorageBackend, Storage },
+    storage::{ StorageBackend, Storage, StorageOptions },
     types::*,
     errors::*
 };
@@ -14,6 +14,8 @@ use xq::{
 pub struct Options {
     #[structopt(name = "FILE")]
     file: PathBuf,
+    #[structopt(flatten)]
+    storage: StorageOptions
 }
 
 enum CommandResult {
@@ -69,7 +71,11 @@ fn run_command(storage: &mut dyn StorageBackend, command: Command) -> Result<Com
 fn main() -> Result<()> {
     let options = Options::from_args();
     let contents = fs::read_to_string(options.file)?;
+
+    #[cfg(feature = "memory-storage")]
     let mut storage = Storage::new();
+    #[cfg(feature = "rocksdb-storage")]
+    let mut storage = Storage::init(&options.storage.database_path)?;
 
     let commands = parser::parse(&contents)?;
 

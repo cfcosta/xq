@@ -1,6 +1,8 @@
 use std::fmt;
 
-#[derive(Debug, PartialEq, Clone)]
+use serde::{ Serialize, Deserialize };
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Value {
     Integer(i64),
     Float(f64),

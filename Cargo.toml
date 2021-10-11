@@ -5,7 +5,10 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.44"
+bincode = "1.3.3"
 nom = "7.0.0"
+rocksdb = { version = "0.17.0", optional = true }
+serde = { version = "1.0.130", features = ["derive"] }
 structopt = "0.3.23"
 thiserror = "1.0.29"
 
@@ -16,3 +19,4 @@ path = "src/bin/test_runner.rs"
 [features]
 default = ["memory-storage"]
 memory-storage = []
+rocksdb-storage = ["rocksdb"]

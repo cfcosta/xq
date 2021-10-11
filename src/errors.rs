@@ -18,3 +18,9 @@ pub enum DataError {
         got: Option<String>
     },
 }
+
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
+pub enum StorageError {
+    #[error("Failed to initialize storage")]
+    FailedInitialize
+}
