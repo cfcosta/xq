@@ -1,4 +1,4 @@
-use std::str;
+use std::{ str, fmt::Debug };
 
 use anyhow::Result;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -19,7 +19,8 @@ pub struct Options {
     storage: StorageOptions,
 }
 
-async fn run_server<T: StorageBackend + Send + Sync>(mut socket: TcpStream, storage: T) -> Result<()> {
+#[tracing::instrument]
+async fn run_server<T: StorageBackend + Send + Sync + Debug>(mut socket: TcpStream, storage: T) -> Result<()> {
         let mut buf = vec![0;1024];
 
         loop {

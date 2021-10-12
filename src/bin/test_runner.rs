@@ -2,6 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use anyhow::Result;
+use tracing::{ info, debug };
 use structopt::StructOpt;
 
 use xq::{
@@ -19,7 +20,11 @@ pub struct Options {
 }
 
 #[tokio::main]
+#[tracing::instrument]
 async fn main() -> Result<()> {
+    tracing::subscriber::set_global_default(tracing_subscriber::FmtSubscriber::new())?;
+    debug!("Started subscriber for tracing");
+
     let options = Options::from_args();
     let contents = fs::read_to_string(options.file)?;
 
@@ -28,13 +33,17 @@ async fn main() -> Result<()> {
     #[cfg(feature = "rocksdb-storage")]
     let storage = Storage::init(&options.storage.database_path)?;
 
+    debug!("Initialized storage");
+
+    debug!("Running program: {}", &contents);
     let commands = parser::parse(&contents)?;
 
     for command in commands {
+        debug!("Running command: {:?}", &command);
         let _ = run_command(&storage, command).await?;
     }
 
-    println!("OK");
+    info!("Test finished successfully");
 
     Ok(())
 }

@@ -20,6 +20,7 @@ pub struct RocksDBStorage {
 }
 
 impl RocksDBStorage {
+    #[tracing::instrument]
     pub fn init(path: &str) -> Result<Self> {
         Ok(Self {
             db: Arc::new(
@@ -48,6 +49,7 @@ impl RocksDBStorage {
 
 #[async_trait::async_trait]
 impl StorageBackend for RocksDBStorage {
+    #[tracing::instrument]
     async fn enqueue(&self, id: Identifier, value: Value) -> Result<()> {
         let begin_key = format!("{}:begin", &id.0);
         let end_key = format!("{}:end", &id.0);
@@ -74,6 +76,7 @@ impl StorageBackend for RocksDBStorage {
         Ok(())
     }
 
+    #[tracing::instrument]
     async fn dequeue(&self, id: Identifier) -> Result<Value> {
         let begin_key = format!("{}:begin", &id.0);
         let cf = self.db.cf_handle("data").ok_or(anyhow!(StorageError::FailedInitialize))?;
@@ -98,6 +101,7 @@ impl StorageBackend for RocksDBStorage {
         }
     }
 
+    #[tracing::instrument]
     async fn length(&self, id: Identifier) -> Result<usize> {
         let db = self.db.clone();
         let begin_key = format!("{}:begin", &id.0);
@@ -118,6 +122,7 @@ impl StorageBackend for RocksDBStorage {
         }
     }
 
+    #[tracing::instrument]
     async fn peek(&self, id: Identifier) -> Result<Value> {
         let db = self.db.clone();
         let begin_key = format!("{}:begin", &id.0);
