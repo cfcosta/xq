@@ -4,6 +4,7 @@ use anyhow::Result;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{ TcpListener, TcpStream };
 use structopt::StructOpt;
+use tracing::{ info, debug, trace };
 
 use xq::{
     parser,
@@ -25,21 +26,30 @@ async fn run_server<T: StorageBackend + Send + Sync + Debug>(mut socket: TcpStre
 
         loop {
             let _ = socket.read(&mut buf).await?;
-            let commands = parser::parse(&str::from_utf8(&buf)?)?;
-
+            match parser::parse(&str::from_utf8(&buf)?) {
+                Ok(commands) => {
             for command in commands {
-                let res = run_command(&storage, command).await?;
+                debug!(command = ?&command, "Running command");
 
-                match res {
-                    CommandResult::Empty => socket.write_all(b"OK\n").await?,
-                    CommandResult::Val(v) => socket.write_all(format!("{}\n", v).as_bytes()).await?
+                match run_command(&storage, command).await {
+                    Ok(res) => match res {
+                        CommandResult::Empty => socket.write_all(b"OK\n").await?,
+                        CommandResult::Val(v) => socket.write_all(format!("{}\n", v).as_bytes()).await?
+                    }
+                    Err(e) => socket.write_all(format!("ERROR: {}\n", e).as_bytes()).await?
                 }
+            }
+                }
+                Err(e) => socket.write_all(format!("ERROR: {}\n", e).as_bytes()).await?
             }
         }
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    tracing::subscriber::set_global_default(tracing_subscriber::FmtSubscriber::new())?;
+    trace!("Started subscriber for tracing");
+
     let options = Options::from_args();
 
     #[cfg(feature = "memory-storage")]
@@ -49,7 +59,7 @@ async fn main() -> Result<()> {
 
     let listener = TcpListener::bind(&options.addr).await?;
 
-    println!("Listening on {}", &options.addr);
+    info!(address = %&options.addr, "Daemon started");
 
     loop {
         let (socket, _) = listener.accept().await?;

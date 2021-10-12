@@ -124,7 +124,7 @@ pub fn program(input: &str) -> IResult<&str, Vec<Command>> {
 }
 
 pub fn parse(input: &str) -> Result<Vec<Command>> {
-    let (_, prg) = program(input).map_err(|_| SyntaxError::ParseError)?;
+    let (_, prg) = program(input).map_err(|_| SyntaxError::ParseError(input.to_string()))?;
 
     Ok(prg)
 }
@@ -164,7 +164,10 @@ fn expr_test() {
     assert_eq!(expr("peek omg"), Ok(("", Command::Peek(id.clone()))));
     assert_eq!(
         expr("assert (peek omg) 1"),
-        Ok(("", Command::Assert(Box::new(Command::Peek(id)), Value::Integer(1))))
+        Ok((
+            "",
+            Command::Assert(Box::new(Command::Peek(id)), Value::Integer(1))
+        ))
     );
 }
 

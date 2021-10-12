@@ -1,9 +1,9 @@
 use thiserror::Error;
 
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum SyntaxError {
-    #[error("Parse Error")]
-    ParseError,
+    #[error("Failed to parse input: {0}")]
+    ParseError(String),
 }
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
