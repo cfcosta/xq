@@ -98,7 +98,7 @@ impl StorageBackend for RocksDBStorage {
                     .ok_or(anyhow!(DataError::EmptyQueue(id.0)))?;
         let end = serde_json::from_slice::<u64>(&end_data)?;
 
-                Ok((end - begin) as usize)
+                Ok((end - begin + 1) as usize)
             }
             None => Ok(0),
         }
