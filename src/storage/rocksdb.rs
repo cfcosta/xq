@@ -1,49 +1,36 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
-use anyhow::{anyhow, bail, Result};
-use rocksdb::{ColumnFamilyDescriptor, Options, WriteBatch, DB};
+use anyhow::{anyhow, Result};
+use rocksdb::{WriteBatch, DB};
 use structopt::StructOpt;
 
 use crate::errors::*;
-use crate::types::*;
 use crate::storage::StorageBackend;
+use crate::types::*;
 
 #[derive(Debug, Clone, StructOpt)]
 pub struct StorageOptions {
     #[structopt(short = "d", long = "database-path")]
-    pub database_path: String
+    pub database_path: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct RocksDBStorage {
-    db: Arc<DB>,
+    db: Arc<RwLock<DB>>,
 }
 
 impl RocksDBStorage {
     #[tracing::instrument]
     pub fn init(path: &str) -> Result<Self> {
         Ok(Self {
-            db: Arc::new(
-                DB::open_cf_descriptors(&Self::default_options(), path, vec![Self::data_cf()])
-                    .map_err(|_| StorageError::FailedInitialize)?,
-            ),
+            db: Arc::new(RwLock::new(
+                DB::open_default(path).map_err(|_| StorageError::FailedInitialize)?,
+            )),
         })
     }
 
-    fn default_options() -> Options {
-        let mut opts = Options::default();
-        opts.create_if_missing(true);
-        opts.create_missing_column_families(true);
-        opts
-    }
-
-    fn data_cf() -> ColumnFamilyDescriptor {
-        ColumnFamilyDescriptor::new("data", Self::default_options())
-    }
-
-    pub fn cleanup(path: &str) -> Result<()> {
-        DB::destroy(&Options::default(), path)?;
-        Ok(())
+    fn bound_keys(&self, id: &Identifier) -> (String, String) {
+        (format!("{}:begin", &id.0), format!("{}:end", &id.0))
     }
 }
 
@@ -51,72 +38,67 @@ impl RocksDBStorage {
 impl StorageBackend for RocksDBStorage {
     #[tracing::instrument]
     async fn enqueue(&self, id: Identifier, value: Value) -> Result<()> {
-        let begin_key = format!("{}:begin", &id.0);
-        let end_key = format!("{}:end", &id.0);
+        let db = self.db.write().map_err(|_| StorageError::FailedLock)?;
+
+        let (begin_key, end_key) = self.bound_keys(&id);
         let mut batch = WriteBatch::default();
 
-        let cf = self.db.cf_handle("data").ok_or(anyhow!(StorageError::FailedInitialize))?;
-
-        match self.db.get_cf(&cf, &end_key)? {
+        match db.get(&end_key)? {
             Some(end) => {
-                let next = bincode::deserialize::<u64>(&end)? + 1;
+                let next: u64 = serde_json::from_slice::<u64>(&end)? + 1;
 
-                batch.put_cf(&cf, &end_key, bincode::serialize(&next)?);
-                batch.put_cf(&cf, &format!("{}:{}", &id.0, next), bincode::serialize(&value)?);
+                batch.put(&end_key, serde_json::to_vec(&next)?);
+                batch.put(&format!("{}:{}", &id.0, next), serde_json::to_vec(&value)?);
             }
             None => {
-                batch.put_cf(&cf, &begin_key, bincode::serialize(&0)?);
-                batch.put_cf(&cf, &end_key, bincode::serialize(&0)?);
-                batch.put_cf(&cf, &format!("{}:{}", &id.0, 0), bincode::serialize(&value)?);
+                batch.put(&begin_key, serde_json::to_vec(&0)?);
+                batch.put(&end_key, serde_json::to_vec(&0)?);
+                batch.put(&format!("{}:{}", &id.0, 0), serde_json::to_vec(&value)?);
             }
         }
 
-        self.db.write(batch)?;
+        db.write(batch)?;
 
         Ok(())
     }
 
     #[tracing::instrument]
     async fn dequeue(&self, id: Identifier) -> Result<Value> {
-        let begin_key = format!("{}:begin", &id.0);
-        let cf = self.db.cf_handle("data").ok_or(anyhow!(StorageError::FailedInitialize))?;
+        let db = self.db.write().map_err(|_| StorageError::FailedLock)?;
 
-        match self.db.get_cf(&cf, &begin_key)? {
-            Some(begin_data) => {
-                let begin = bincode::deserialize::<u64>(&begin_data)?;
-                let next = begin + 1;
+        let (begin_key, _) = self.bound_keys(&id);
 
-                let data = self
-                    .db
-                    .get_cf(&cf, &format!("{}:{}", &id.0, begin))?
-                    .ok_or(anyhow!(DataError::EmptyQueue(id.0)))?;
+        let begin_data = db
+            .get(&begin_key)?
+            .ok_or(anyhow!(DataError::EmptyQueue(id.0.clone())))?;
+        let begin = serde_json::from_slice::<u64>(&begin_data)?;
+        let next = begin + 1;
 
-                self.db.put_cf(&cf, &begin_key, bincode::serialize(&next)?)?;
+        let data = db
+            .get(&format!("{}:{}", &id.0, begin))?
+            .ok_or(anyhow!(DataError::EmptyQueue(id.0.clone())))?;
 
-                Ok(bincode::deserialize::<Value>(&data)?)
-            }
-            None => {
-                bail!(DataError::EmptyQueue(id.0))
-            }
-        }
+        db.put(&begin_key, serde_json::to_vec(&next)?)?;
+
+        Ok(serde_json::from_slice::<Value>(&data)?)
     }
 
     #[tracing::instrument]
     async fn length(&self, id: Identifier) -> Result<usize> {
-        let db = self.db.clone();
-        let begin_key = format!("{}:begin", &id.0);
+        let db = self.db.read().map_err(|_| StorageError::FailedLock)?;
+
+        let (begin_key, _) = self.bound_keys(&id);
         let end_key = format!("{}:end", &id.0);
-        let cf = self.db.cf_handle("data").ok_or(anyhow!(StorageError::FailedInitialize))?;
 
-        match self.db.get_cf(&cf, &begin_key)? {
+        match db.get(&begin_key)? {
             Some(begin_data) => {
-                let begin = bincode::deserialize::<u64>(&begin_data)?;
+        let begin = serde_json::from_slice::<u64>(&begin_data)?;
                 let end_data = db
-                    .get_cf(&cf, &end_key)?
+                    .get(&end_key)?
                     .ok_or(anyhow!(DataError::EmptyQueue(id.0)))?;
-                let end = bincode::deserialize::<u64>(&end_data)?;
+        let end = serde_json::from_slice::<u64>(&end_data)?;
 
-                Ok((end - begin) as usize)
+                Ok((end - begin + 1) as usize)
             }
             None => Ok(0),
         }
@@ -124,18 +106,18 @@ impl StorageBackend for RocksDBStorage {
 
     #[tracing::instrument]
     async fn peek(&self, id: Identifier) -> Result<Value> {
-        let db = self.db.clone();
-        let begin_key = format!("{}:begin", &id.0);
-        let cf = self.db.cf_handle("data").ok_or(anyhow!(StorageError::FailedInitialize))?;
+        let db = self.db.read().map_err(|_| StorageError::FailedLock)?;
+
+        let (begin_key, _) = self.bound_keys(&id);
 
         let begin_data = db
-            .get_cf(&cf, &begin_key)?
+            .get(&begin_key)?
             .ok_or(anyhow!(DataError::EmptyQueue(id.clone().0)))?;
-        let begin = bincode::deserialize::<u64>(&begin_data)?;
+        let begin = serde_json::from_slice::<u64>(&begin_data)?;
         let data = db
-            .get_cf(&cf, &format!("{}:{}", &id.0, begin))?
+            .get(&format!("{}:{}", &id.0, begin))?
             .ok_or(anyhow!(DataError::EmptyQueue(id.0)))?;
 
-        Ok(bincode::deserialize::<Value>(&data)?)
+        Ok(serde_json::from_slice::<Value>(&data)?)
     }
 }

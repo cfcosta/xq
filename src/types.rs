@@ -1,6 +1,6 @@
 use std::fmt;
 
-use serde::{ Serialize, Deserialize };
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Value {
@@ -34,5 +34,5 @@ pub enum Command {
     Dequeue(Identifier),
     Length(Identifier),
     Peek(Identifier),
-    Assert(Box<Command>, Value)
+    Assert(Box<Command>, Value),
 }

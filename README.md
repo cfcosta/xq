@@ -37,7 +37,7 @@ combinator library](https://github.com/Geal/nom).
   - [ ] Error Reporting
 - [ ] Storage
   - [x] Simple in-memory Storage
-  - [ ] RocksDB based storage (`available under a feature flag, currently not working`)
+  - [x] RocksDB based storage
   - [ ] Snapshotting
 - [ ] Networking
   - [x] TCP Server/Daemon
