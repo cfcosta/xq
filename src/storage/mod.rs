@@ -5,9 +5,9 @@ use crate::types::*;
 #[cfg(feature = "memory-storage")]
 mod memory;
 #[cfg(feature = "memory-storage")]
-pub use memory::MemoryStorage as Storage;
-#[cfg(feature = "memory-storage")]
 pub use self::memory::StorageOptions;
+#[cfg(feature = "memory-storage")]
+pub use memory::MemoryStorage as Storage;
 
 #[cfg(feature = "rocksdb-storage")]
 mod rocksdb;

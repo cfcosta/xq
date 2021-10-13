@@ -1,15 +1,15 @@
-use std::{ str, fmt::Debug };
+use std::{fmt::Debug, str};
 
 use anyhow::Result;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{ TcpListener, TcpStream };
 use structopt::StructOpt;
-use tracing::{ info, debug, trace };
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::{TcpListener, TcpStream};
+use tracing::{debug, info, trace};
 
 use xq::{
-    parser,
-    storage::{ Storage, StorageBackend, StorageOptions },
-    run_command, CommandResult
+    parser, run_command,
+    storage::{Storage, StorageBackend, StorageOptions},
+    CommandResult,
 };
 
 #[derive(Clone, Debug, StructOpt)]
@@ -21,28 +21,41 @@ pub struct Options {
 }
 
 #[tracing::instrument]
-async fn run_server<T: StorageBackend + Send + Sync + Debug>(mut socket: TcpStream, storage: T) -> Result<()> {
-        let mut buf = vec![0;1024];
+async fn run_server<T: StorageBackend + Send + Sync + Debug>(
+    mut socket: TcpStream,
+    storage: T,
+) -> Result<()> {
+    let mut buf = vec![0; 1024];
 
-        loop {
-            let _ = socket.read(&mut buf).await?;
-            match parser::parse(&str::from_utf8(&buf)?) {
-                Ok(commands) => {
-            for command in commands {
-                debug!(command = ?&command, "Running command");
+    loop {
+        let _ = socket.read(&mut buf).await?;
+        match parser::parse(&str::from_utf8(&buf)?) {
+            Ok(commands) => {
+                for command in commands {
+                    debug!(command = ?&command, "Running command");
 
-                match run_command(&storage, command).await {
-                    Ok(res) => match res {
-                        CommandResult::Empty => socket.write_all(b"OK\n").await?,
-                        CommandResult::Val(v) => socket.write_all(format!("{}\n", v).as_bytes()).await?
+                    match run_command(&storage, command).await {
+                        Ok(res) => match res {
+                            CommandResult::Empty => socket.write_all(b"OK\n").await?,
+                            CommandResult::Val(v) => {
+                                socket.write_all(format!("{}\n", v).as_bytes()).await?
+                            }
+                        },
+                        Err(e) => {
+                            socket
+                                .write_all(format!("ERROR: {}\n", e).as_bytes())
+                                .await?
+                        }
                     }
-                    Err(e) => socket.write_all(format!("ERROR: {}\n", e).as_bytes()).await?
                 }
             }
-                }
-                Err(e) => socket.write_all(format!("ERROR: {}\n", e).as_bytes()).await?
+            Err(e) => {
+                socket
+                    .write_all(format!("ERROR: {}\n", e).as_bytes())
+                    .await?
             }
         }
+    }
 }
 
 #[tokio::main]

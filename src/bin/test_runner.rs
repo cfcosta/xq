@@ -2,13 +2,12 @@ use std::fs;
 use std::path::PathBuf;
 
 use anyhow::Result;
-use tracing::{ info, debug, trace };
 use structopt::StructOpt;
+use tracing::{debug, info, trace};
 
 use xq::{
-    parser,
+    parser, run_command,
     storage::{Storage, StorageOptions},
-    run_command
 };
 
 #[derive(Clone, Debug, StructOpt)]
@@ -41,7 +40,6 @@ async fn main() -> Result<()> {
     for command in commands {
         info!(command = ?&command, "Running command");
         let _ = run_command(&storage, command).await?;
-        dbg!("got here");
     }
 
     info!("Test finished successfully");

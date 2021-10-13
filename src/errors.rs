@@ -15,7 +15,7 @@ pub enum DataError {
     FailedAssertion {
         command: String,
         expected: String,
-        got: Option<String>
+        got: Option<String>,
     },
 }
 
@@ -24,7 +24,7 @@ pub enum StorageError {
     #[error("Failed to initialize storage")]
     FailedInitialize,
     #[error("Failed to get lock on the storage")]
-    FailedLock
+    FailedLock,
 }
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]

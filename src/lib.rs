@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
-use async_recursion::async_recursion;
 use anyhow::{bail, Result};
+use async_recursion::async_recursion;
 
 pub mod errors;
 pub mod parser;
@@ -19,7 +19,10 @@ pub enum CommandResult {
 
 #[tracing::instrument]
 #[async_recursion]
-pub async fn run_command<T: StorageBackend + Send + Sync + Debug>(storage: &T, command: Command) -> Result<CommandResult> {
+pub async fn run_command<T: StorageBackend + Send + Sync + Debug>(
+    storage: &T,
+    command: Command,
+) -> Result<CommandResult> {
     match command {
         Command::Enqueue(key, value) => {
             storage.enqueue(key, value).await?;
