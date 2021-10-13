@@ -7,17 +7,19 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - run: sudo apt-get update -y && sudo apt-get install -y build-essential
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install Operating System dependencies
+        run: sudo apt-get update -y && sudo apt-get install -y build-essential
+      - name: Enable Rust Toolchain
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release
-      - uses: actions-rs/cargo@v1
+      - name: Run Unit Tests
+        uses: actions-rs/cargo@v1
         with:
           command: test
-      - run: ./test.sh memory
-      - run: ./test.sh rocksdb
+      - name: Run tests for In-memory Storage
+        run: ./test.sh memory
+      - name: Run tests for RocksDB Storage
+        run: ./test.sh rocksdb
