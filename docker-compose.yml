@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  node01:
+    build: .
+    restart: always
+    stop_signal: SIGKILL
+    ports:
+      - 7001:8080
+    networks:
+      - cluster
+  node02:
+    build: .
+    restart: always
+    stop_signal: SIGKILL
+    ports:
+      - 7002:8080
+    networks:
+      - cluster
+  node03:
+    build: .
+    restart: always
+    stop_signal: SIGKILL
+    ports:
+      - 7003:8080
+    networks:
+      - cluster
+  node04:
+    build: .
+    restart: always
+    stop_signal: SIGKILL
+    ports:
+      - 7004:8080
+    networks:
+      - cluster
+  node05:
+    build: .
+    restart: always
+    stop_signal: SIGKILL
+    ports:
+      - 7005:8080
+    networks:
+      - cluster
+
+networks:
+  cluster:

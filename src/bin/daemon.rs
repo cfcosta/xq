@@ -14,7 +14,7 @@ use xq::{
 
 #[derive(Clone, Debug, StructOpt)]
 pub struct Options {
-    #[structopt(name = "ADDRESS", default_value = "127.0.0.1:8080")]
+    #[structopt(name = "ADDRESS", default_value = "0.0.0.0:8080")]
     addr: String,
     #[structopt(flatten)]
     storage: StorageOptions,
