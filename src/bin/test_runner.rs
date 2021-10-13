@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use anyhow::Result;
-use tracing::{ info, debug };
+use tracing::{ info, debug, trace };
 use structopt::StructOpt;
 
 use xq::{
@@ -33,14 +33,15 @@ async fn main() -> Result<()> {
     #[cfg(feature = "rocksdb-storage")]
     let storage = Storage::init(&options.storage.database_path)?;
 
-    debug!("Initialized storage");
+    trace!("Initialized storage");
 
-    debug!("Running program: {}", &contents);
+    debug!(program = ?&contents, "Running program");
     let commands = parser::parse(&contents)?;
 
     for command in commands {
-        debug!("Running command: {:?}", &command);
+        info!(command = ?&command, "Running command");
         let _ = run_command(&storage, command).await?;
+        dbg!("got here");
     }
 
     info!("Test finished successfully");
