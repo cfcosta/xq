@@ -92,11 +92,11 @@ impl StorageBackend for RocksDBStorage {
 
         match db.get(&begin_key)? {
             Some(begin_data) => {
-        let begin = serde_json::from_slice::<u64>(&begin_data)?;
+                let begin = serde_json::from_slice::<u64>(&begin_data)?;
                 let end_data = db
                     .get(&end_key)?
                     .ok_or(anyhow!(DataError::EmptyQueue(id.0)))?;
-        let end = serde_json::from_slice::<u64>(&end_data)?;
+                let end = serde_json::from_slice::<u64>(&end_data)?;
 
                 Ok((end - begin + 1) as usize)
             }
