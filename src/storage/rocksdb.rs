@@ -1,7 +1,7 @@
 use std::sync::{Arc, RwLock};
 
 use anyhow::{anyhow, Result};
-use rocksdb::{ColumnFamilyDescriptor, Options, WriteBatch, DB};
+use rocksdb::{WriteBatch, DB};
 use structopt::StructOpt;
 
 use crate::errors::*;
@@ -45,15 +45,15 @@ impl StorageBackend for RocksDBStorage {
 
         match db.get(&end_key)? {
             Some(end) => {
-                let next = bincode::deserialize::<u64>(&end)? + 1;
+                let next: u64 = serde_json::from_slice::<u64>(&end)? + 1;
 
-                batch.put(&end_key, bincode::serialize(&next)?);
-                batch.put(&format!("{}:{}", &id.0, next), bincode::serialize(&value)?);
+                batch.put(&end_key, serde_json::to_vec(&next)?);
+                batch.put(&format!("{}:{}", &id.0, next), serde_json::to_vec(&value)?);
             }
             None => {
-                batch.put(&begin_key, bincode::serialize(&0)?);
-                batch.put(&end_key, bincode::serialize(&1)?);
-                batch.put(&format!("{}:{}", &id.0, 0), bincode::serialize(&value)?);
+                batch.put(&begin_key, serde_json::to_vec(&0)?);
+                batch.put(&end_key, serde_json::to_vec(&0)?);
+                batch.put(&format!("{}:{}", &id.0, 0), serde_json::to_vec(&value)?);
             }
         }
 
@@ -71,16 +71,16 @@ impl StorageBackend for RocksDBStorage {
         let begin_data = db
             .get(&begin_key)?
             .ok_or(anyhow!(DataError::EmptyQueue(id.0.clone())))?;
-        let begin = bincode::deserialize::<u64>(&begin_data)?;
+        let begin = serde_json::from_slice::<u64>(&begin_data)?;
         let next = begin + 1;
 
         let data = db
             .get(&format!("{}:{}", &id.0, begin))?
             .ok_or(anyhow!(DataError::EmptyQueue(id.0.clone())))?;
 
-        db.put(&begin_key, bincode::serialize(&next)?)?;
+        db.put(&begin_key, serde_json::to_vec(&next)?)?;
 
-        Ok(bincode::deserialize::<Value>(&data)?)
+        Ok(serde_json::from_slice::<Value>(&data)?)
     }
 
     #[tracing::instrument]
@@ -92,11 +92,11 @@ impl StorageBackend for RocksDBStorage {
 
         match db.get(&begin_key)? {
             Some(begin_data) => {
-                let begin = bincode::deserialize::<u64>(&begin_data)?;
+        let begin = serde_json::from_slice::<u64>(&begin_data)?;
                 let end_data = db
                     .get(&end_key)?
                     .ok_or(anyhow!(DataError::EmptyQueue(id.0)))?;
-                let end = bincode::deserialize::<u64>(&end_data)?;
+        let end = serde_json::from_slice::<u64>(&end_data)?;
 
                 Ok((end - begin) as usize)
             }
@@ -113,11 +113,11 @@ impl StorageBackend for RocksDBStorage {
         let begin_data = db
             .get(&begin_key)?
             .ok_or(anyhow!(DataError::EmptyQueue(id.clone().0)))?;
-        let begin = bincode::deserialize::<u64>(&begin_data)?;
+        let begin = serde_json::from_slice::<u64>(&begin_data)?;
         let data = db
             .get(&format!("{}:{}", &id.0, begin))?
             .ok_or(anyhow!(DataError::EmptyQueue(id.0)))?;
 
-        Ok(bincode::deserialize::<Value>(&data)?)
+        Ok(serde_json::from_slice::<Value>(&data)?)
     }
 }
