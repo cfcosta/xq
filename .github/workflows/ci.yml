@@ -20,5 +20,4 @@ jobs:
         with:
           command: test
       - run: ./test.sh memory
-      - continue-on-error: true
-        run: ./test.sh rocksdb
+      - run: ./test.sh rocksdb

@@ -34,11 +34,11 @@ async fn main() -> Result<()> {
 
     trace!("Initialized storage");
 
-    debug!(program = ?&contents, "Running program");
+    trace!(program = ?&contents, "Running program");
     let commands = parser::parse(&contents)?;
 
     for command in commands {
-        info!(command = ?&command, "Running command");
+        debug!(command = ?&command, "Running command");
         let _ = run_command(&storage, command).await?;
     }
 
