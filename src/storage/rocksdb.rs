@@ -23,9 +23,7 @@ impl RocksDBStorage {
     #[tracing::instrument]
     pub fn init(path: &str) -> Result<Self> {
         Ok(Self {
-            db: Arc::new(
-                DB::open_default(path).map_err(|_| StorageError::FailedInitialize)?,
-            ),
+            db: Arc::new(DB::open_default(path).map_err(|_| StorageError::FailedInitialize)?),
         })
     }
 
@@ -38,10 +36,17 @@ impl RocksDBStorage {
 
         let (begin_key, end_key) = self.bound_keys(id);
 
-        let begin = db.get(&begin_key)?.ok_or(anyhow!(DataError::EmptyQueue(id.to_string())))?;
-        let end = db.get(&end_key)?.ok_or(anyhow!(DataError::EmptyQueue(id.to_string())))?;
+        let begin = db
+            .get(&begin_key)?
+            .ok_or(anyhow!(DataError::EmptyQueue(id.to_string())))?;
+        let end = db
+            .get(&end_key)?
+            .ok_or(anyhow!(DataError::EmptyQueue(id.to_string())))?;
 
-        Ok((serde_json::from_slice(&begin)?, serde_json::from_slice(&end)?))
+        Ok((
+            serde_json::from_slice(&begin)?,
+            serde_json::from_slice(&end)?,
+        ))
     }
 }
 
@@ -57,7 +62,10 @@ impl StorageBackend for RocksDBStorage {
         match self.bounds_for(&id) {
             Ok((_, end)) => {
                 batch.put(&end_key, serde_json::to_vec(&(end + 1))?);
-                batch.put(&format!("{}:{}", &id.0, &(end + 1)), serde_json::to_vec(&value)?);
+                batch.put(
+                    &format!("{}:{}", &id.0, &(end + 1)),
+                    serde_json::to_vec(&value)?,
+                );
             }
             _ => {
                 batch.put(&begin_key, serde_json::to_vec(&0)?);
@@ -85,14 +93,13 @@ impl StorageBackend for RocksDBStorage {
         db.put(&begin_key, serde_json::to_vec(&(begin + 1))?)?;
 
         Ok(serde_json::from_slice::<Value>(&data)?)
-
     }
 
     #[tracing::instrument]
     async fn length(&self, id: Identifier) -> Result<usize> {
         match self.bounds_for(&id) {
             Ok((begin, end)) => Ok((end - begin + 1) as usize),
-            _ => Ok(0)
+            _ => Ok(0),
         }
     }
 
