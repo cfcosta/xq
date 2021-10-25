@@ -15,11 +15,12 @@ use crate::errors::*;
 use crate::types::{Command, Identifier, Value};
 
 fn int_to_value(input: &str) -> Result<Value> {
-    Ok(Value::Integer(i64::from_str_radix(input, 10)?))
+    Ok(i64::from_str_radix(input, 10)?.into())
 }
 
+
 fn float_to_value(input: &str) -> Result<Value> {
-    Ok(Value::Float(input.parse::<f64>()?))
+    Ok(input.parse::<f64>()?.into())
 }
 
 fn decimal(input: &str) -> IResult<&str, Value> {
@@ -53,7 +54,7 @@ fn float(input: &str) -> IResult<&str, Value> {
 
 fn string(input: &str) -> IResult<&str, Value> {
     map_res(string::parse_string, |out: String| -> Result<Value> {
-        Ok(Value::String(out))
+        Ok(out.into())
     })(input)
 }
 

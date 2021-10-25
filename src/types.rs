@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{ fmt, convert::From };
 
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +16,24 @@ impl fmt::Display for Value {
             Value::Float(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
         }
+    }
+}
+
+impl From<i64> for Value {
+    fn from(item: i64) -> Self {
+        Value::Integer(item)
+    }
+}
+
+impl From<String> for Value {
+    fn from(item: String) -> Self {
+        Value::String(item)
+    }
+}
+
+impl From<f64> for Value {
+    fn from(item: f64) -> Self {
+        Value::Float(item as f64)
     }
 }
 
