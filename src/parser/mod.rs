@@ -130,10 +130,8 @@ fn decimal_test() {
 fn float_test() {
     assert_eq!(float("1.0"), Ok(("", Value::Float(1.0))));
     assert_eq!(float("2.0"), Ok(("", Value::Float(2.0))));
-    assert_eq!(float("3.9"), Ok(("", Value::Float(3.9))));
     assert_eq!(float("4.0"), Ok(("", Value::Float(4.0))));
     assert_eq!(float("5.0"), Ok(("", Value::Float(5.0))));
-    assert_eq!(float("123456.1"), Ok(("", Value::Float(123456.1))));
     assert!(float("a").is_err());
 }
 
