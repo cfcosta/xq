@@ -33,6 +33,12 @@ impl From<String> for Value {
 
 impl From<f64> for Value {
     fn from(item: f64) -> Self {
+        Value::Float(item)
+    }
+}
+
+impl From<f32> for Value {
+    fn from(item: f32) -> Self {
         Value::Float(item as f64)
     }
 }

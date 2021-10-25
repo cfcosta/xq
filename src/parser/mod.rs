@@ -5,7 +5,7 @@ use nom::{
     character::complete::*,
     combinator::*,
     multi::{many0, many1},
-    sequence::{delimited, pair, preceded, terminated, tuple},
+    sequence::{delimited, pair, terminated, tuple},
     IResult,
 };
 
@@ -19,10 +19,6 @@ fn int_to_value(input: &str) -> Result<Value> {
 }
 
 
-fn float_to_value(input: &str) -> Result<Value> {
-    Ok(input.parse::<f64>()?.into())
-}
-
 fn decimal(input: &str) -> IResult<&str, Value> {
     map_res(
         recognize(many1(terminated(one_of("0123456789"), many0(char('_'))))),
@@ -32,23 +28,8 @@ fn decimal(input: &str) -> IResult<&str, Value> {
 
 fn float(input: &str) -> IResult<&str, Value> {
     map_res(
-        alt((
-            // Case one: .42
-            recognize(tuple((
-                char('.'),
-                decimal,
-                opt(tuple((one_of("eE"), opt(one_of("+-")), decimal))),
-            ))), // Case two: 42e42 and 42.42e42
-            recognize(tuple((
-                decimal,
-                opt(preceded(char('.'), decimal)),
-                one_of("eE"),
-                opt(one_of("+-")),
-                decimal,
-            ))), // Case three: 42. and 42.42
-            recognize(tuple((decimal, char('.'), opt(decimal)))),
-        )),
-        float_to_value,
+        nom::number::complete::float,
+        |out: f32| -> Result<Value> { Ok(out.into()) },
     )(input)
 }
 
@@ -121,7 +102,7 @@ pub fn expr(input: &str) -> IResult<&str, Command> {
 
 #[tracing::instrument]
 pub fn program(input: &str) -> IResult<&str, Vec<Command>> {
-    many1(terminated(expr, opt(alt((tag("\r\n"), tag("\n"))))))(input)
+    many1(terminated(expr, opt(line_ending)))(input)
 }
 
 pub fn parse(input: &str) -> Result<Vec<Command>> {
