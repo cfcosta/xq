@@ -59,4 +59,5 @@ pub enum Command {
     Length(Identifier),
     Peek(Identifier),
     Assert(Box<Command>, Value),
+    Noop
 }

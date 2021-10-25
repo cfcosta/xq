@@ -1,3 +1,5 @@
+# Runs a sequence of commands multiple times to check some of the code
+# paths/measure performance.
 enqueue a 1
 enqueue a 2
 enqueue a 3

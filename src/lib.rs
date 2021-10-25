@@ -64,5 +64,6 @@ pub async fn run_command<T: StorageBackend + Send + Sync + Debug>(
                 }
             }
         }
+        Command::Noop => Ok(CommandResult::Empty)
     }
 }

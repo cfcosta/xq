@@ -95,9 +95,13 @@ fn assert(input: &str) -> IResult<&str, Command> {
     )(input)
 }
 
+fn comment(input: &str) -> IResult<&str, Command> {
+    value(Command::Noop, pair(char('#'), is_not("\r\n")))(input)
+}
+
 #[tracing::instrument]
 pub fn expr(input: &str) -> IResult<&str, Command> {
-    complete(alt((enqueue, dequeue, length, peek, assert)))(input)
+    complete(alt((comment, enqueue, dequeue, length, peek, assert)))(input)
 }
 
 #[tracing::instrument]
