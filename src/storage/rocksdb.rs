@@ -1,8 +1,9 @@
-use std::sync::Arc;
+use std::{ sync::Arc, collections::VecDeque };
 
-use anyhow::{anyhow, Result};
-use rocksdb::{WriteBatch, DB};
+use anyhow::{anyhow, Result, bail};
+use rocksdb::{DB, MergeOperands, Options};
 use structopt::StructOpt;
+use serde::{Serialize, Deserialize};
 
 use crate::errors::*;
 use crate::storage::StorageBackend;
@@ -19,99 +20,89 @@ pub struct RocksDBStorage {
     db: Arc<DB>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Operation {
+    Enqueue(Value),
+    Dequeue
+}
+
+pub fn merge_queue(_new_key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOperands) -> Option<Vec<u8>> {
+    let mut current: VecDeque<Value> = match existing_val {
+        Some(val) => serde_json::from_slice::<VecDeque<Value>>(val).unwrap(),
+        None => VecDeque::new()
+    };
+
+    for op in operands {
+        match serde_json::from_slice::<Operation>(op).unwrap() {
+            Operation::Enqueue(v) => {
+                current.push_back(v);
+            },
+            Operation::Dequeue => {
+                current.pop_front();
+            }
+        }
+    }
+
+    Some(serde_json::to_vec(&current).unwrap())
+}
+
 impl RocksDBStorage {
     #[tracing::instrument]
     pub fn init(path: &str) -> Result<Self> {
         Ok(Self {
-            db: Arc::new(DB::open_default(path).map_err(|_| StorageError::FailedInitialize)?),
+            db: Arc::new(DB::open(&Self::default_options(), path).map_err(|_| StorageError::FailedInitialize)?),
         })
     }
 
-    fn bound_keys(&self, id: &Identifier) -> (String, String) {
-        (format!("{}:begin", &id.0), format!("{}:end", &id.0))
-    }
-
-    fn bounds_for(&self, id: &Identifier) -> Result<(u64, u64)> {
-        let db = self.db.clone();
-
-        let (begin_key, end_key) = self.bound_keys(id);
-
-        let begin = db
-            .get(&begin_key)?
-            .ok_or(anyhow!(DataError::EmptyQueue(id.to_string())))?;
-        let end = db
-            .get(&end_key)?
-            .ok_or(anyhow!(DataError::EmptyQueue(id.to_string())))?;
-
-        Ok((
-            serde_json::from_slice(&begin)?,
-            serde_json::from_slice(&end)?,
-        ))
+    fn default_options() -> Options {
+        let mut opts = Options::default();
+        opts.create_if_missing(true);
+        opts.set_merge_operator_associative("queue merge operator", merge_queue);
+        opts
     }
 }
 
 #[async_trait::async_trait]
 impl StorageBackend for RocksDBStorage {
     #[tracing::instrument]
-    async fn enqueue(&self, id: Identifier, value: Value) -> Result<()> {
-        let db = self.db.clone();
-
-        let (begin_key, end_key) = self.bound_keys(&id);
-        let mut batch = WriteBatch::default();
-
-        match self.bounds_for(&id) {
-            Ok((_, end)) => {
-                batch.put(&end_key, serde_json::to_vec(&(end + 1))?);
-                batch.put(
-                    &format!("{}:{}", &id.0, &(end + 1)),
-                    serde_json::to_vec(&value)?,
-                );
-            }
-            _ => {
-                batch.put(&begin_key, serde_json::to_vec(&0)?);
-                batch.put(&end_key, serde_json::to_vec(&0)?);
-                batch.put(&format!("{}:{}", &id.0, 0), serde_json::to_vec(&value)?);
-            }
-        }
-
-        db.write(batch)?;
+    async fn enqueue(&self, id: &Identifier, value: Value) -> Result<()> {
+        let op = serde_json::to_vec(&Operation::Enqueue(value))?;
+        self.db.merge(&id.0, op)?;
 
         Ok(())
     }
 
     #[tracing::instrument]
-    async fn dequeue(&self, id: Identifier) -> Result<Value> {
-        let db = self.db.clone();
+    async fn dequeue(&self, id: &Identifier) -> Result<Value> {
+        let val = self.peek(id).await?;
+        let op = serde_json::to_vec(&Operation::Dequeue)?;
 
-        let (begin_key, _) = self.bound_keys(&id);
-        let (begin, _) = self.bounds_for(&id)?;
+        self.db.merge(&id.0, op)?;
 
-        let data = db
-            .get(&format!("{}:{}", &id.0, begin))?
-            .ok_or(anyhow!(DataError::EmptyQueue(id.0.clone())))?;
-
-        db.put(&begin_key, serde_json::to_vec(&(begin + 1))?)?;
-
-        Ok(serde_json::from_slice::<Value>(&data)?)
+        Ok(val)
     }
 
     #[tracing::instrument]
-    async fn length(&self, id: Identifier) -> Result<usize> {
-        match self.bounds_for(&id) {
-            Ok((begin, end)) => Ok((end - begin + 1) as usize),
-            _ => Ok(0),
+    async fn length(&self, id: &Identifier) -> Result<usize> {
+        let db = self.db.clone();
+
+        match db.get(&id.0)? {
+            Some(v) => Ok(serde_json::from_slice::<Vec<Value>>(&v)?.len()),
+            None => Ok(0)
         }
     }
 
     #[tracing::instrument]
-    async fn peek(&self, id: Identifier) -> Result<Value> {
-        let db = self.db.clone();
-
-        let (begin, _) = self.bounds_for(&id)?;
-        let data = db
-            .get(&format!("{}:{}", &id.0, begin))?
-            .ok_or(anyhow!(DataError::EmptyQueue(id.0)))?;
-
-        Ok(serde_json::from_slice::<Value>(&data)?)
+    async fn peek(&self, id: &Identifier) -> Result<Value> {
+        match self.db.get(&id.0)? {
+            Some(v) => {
+                let value = serde_json::from_slice::<Vec<Value>>(&v)?;
+                match value.first() {
+                    Some(v) => Ok(v.clone()),
+                    None => bail!(DataError::EmptyQueue(id.0.clone()))
+                }
+            }
+            None => bail!(DataError::EmptyQueue(id.0.clone()))
+        }
     }
 }

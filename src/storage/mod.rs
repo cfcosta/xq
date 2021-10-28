@@ -18,8 +18,8 @@ pub use self::rocksdb::StorageOptions;
 
 #[async_trait::async_trait]
 pub trait StorageBackend {
-    async fn enqueue(&self, id: Identifier, value: Value) -> Result<()>;
-    async fn dequeue(&self, id: Identifier) -> Result<Value>;
-    async fn length(&self, id: Identifier) -> Result<usize>;
-    async fn peek(&self, id: Identifier) -> Result<Value>;
+    async fn enqueue(&self, id: &Identifier, value: Value) -> Result<()>;
+    async fn dequeue(&self, id: &Identifier) -> Result<Value>;
+    async fn length(&self, id: &Identifier) -> Result<usize>;
+    async fn peek(&self, id: &Identifier) -> Result<Value>;
 }

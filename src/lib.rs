@@ -25,20 +25,20 @@ pub async fn run_command<T: StorageBackend + Send + Sync + Debug>(
 ) -> Result<CommandResult> {
     match command {
         Command::Enqueue(key, value) => {
-            storage.enqueue(key, value).await?;
+            storage.enqueue(&key, value).await?;
             Ok(CommandResult::Empty)
         }
         Command::Dequeue(key) => {
-            let value = storage.dequeue(key.clone()).await?;
+            let value = storage.dequeue(&key).await?;
             Ok(CommandResult::Val(value))
         }
         Command::Length(key) => {
-            let value = storage.length(key.clone()).await?;
+            let value = storage.length(&key).await?;
             Ok(CommandResult::Val(Value::Integer(value as i64)))
         }
         Command::Peek(key) => {
-            let value = storage.peek(key.clone()).await?;
-            Ok(CommandResult::Val(value.clone()))
+            let value = storage.peek(&key).await?;
+            Ok(CommandResult::Val(value))
         }
         Command::Assert(cmd, val) => {
             let cmd_desc = format!("{:?}", &cmd);
