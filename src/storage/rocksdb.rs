@@ -1,6 +1,6 @@
 use std::{ sync::Arc, collections::VecDeque };
 
-use anyhow::{anyhow, Result, bail};
+use anyhow::{Result, bail};
 use rocksdb::{DB, MergeOperands, Options};
 use structopt::StructOpt;
 use serde::{Serialize, Deserialize};
@@ -28,12 +28,12 @@ pub enum Operation {
 
 pub fn merge_queue(_new_key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOperands) -> Option<Vec<u8>> {
     let mut current: VecDeque<Value> = match existing_val {
-        Some(val) => serde_json::from_slice::<VecDeque<Value>>(val).unwrap(),
+        Some(val) => bincode::deserialize::<VecDeque<Value>>(val).unwrap(),
         None => VecDeque::new()
     };
 
     for op in operands {
-        match serde_json::from_slice::<Operation>(op).unwrap() {
+        match bincode::deserialize::<Operation>(op).unwrap() {
             Operation::Enqueue(v) => {
                 current.push_back(v);
             },
@@ -43,7 +43,7 @@ pub fn merge_queue(_new_key: &[u8], existing_val: Option<&[u8]>, operands: &mut 
         }
     }
 
-    Some(serde_json::to_vec(&current).unwrap())
+    Some(bincode::serialize(&current).unwrap())
 }
 
 impl RocksDBStorage {
@@ -66,7 +66,7 @@ impl RocksDBStorage {
 impl StorageBackend for RocksDBStorage {
     #[tracing::instrument]
     async fn enqueue(&self, id: &Identifier, value: Value) -> Result<()> {
-        let op = serde_json::to_vec(&Operation::Enqueue(value))?;
+        let op = bincode::serialize(&Operation::Enqueue(value))?;
         self.db.merge(&id.0, op)?;
 
         Ok(())
@@ -75,7 +75,7 @@ impl StorageBackend for RocksDBStorage {
     #[tracing::instrument]
     async fn dequeue(&self, id: &Identifier) -> Result<Value> {
         let val = self.peek(id).await?;
-        let op = serde_json::to_vec(&Operation::Dequeue)?;
+        let op = bincode::serialize(&Operation::Dequeue)?;
 
         self.db.merge(&id.0, op)?;
 
@@ -87,7 +87,7 @@ impl StorageBackend for RocksDBStorage {
         let db = self.db.clone();
 
         match db.get(&id.0)? {
-            Some(v) => Ok(serde_json::from_slice::<Vec<Value>>(&v)?.len()),
+            Some(v) => Ok(bincode::deserialize::<Vec<Value>>(&v)?.len()),
             None => Ok(0)
         }
     }
@@ -96,7 +96,7 @@ impl StorageBackend for RocksDBStorage {
     async fn peek(&self, id: &Identifier) -> Result<Value> {
         match self.db.get(&id.0)? {
             Some(v) => {
-                let value = serde_json::from_slice::<Vec<Value>>(&v)?;
+                let value = bincode::deserialize::<Vec<Value>>(&v)?;
                 match value.first() {
                     Some(v) => Ok(v.clone()),
                     None => bail!(DataError::EmptyQueue(id.0.clone()))
