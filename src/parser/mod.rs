@@ -18,7 +18,6 @@ fn int_to_value(input: &str) -> Result<Value> {
     Ok(i64::from_str_radix(input, 10)?.into())
 }
 
-
 fn decimal(input: &str) -> IResult<&str, Value> {
     map_res(
         recognize(many1(terminated(one_of("0123456789"), many0(char('_'))))),
@@ -27,10 +26,9 @@ fn decimal(input: &str) -> IResult<&str, Value> {
 }
 
 fn float(input: &str) -> IResult<&str, Value> {
-    map_res(
-        nom::number::complete::float,
-        |out: f32| -> Result<Value> { Ok(out.into()) },
-    )(input)
+    map_res(nom::number::complete::float, |out: f32| -> Result<Value> {
+        Ok(out.into())
+    })(input)
 }
 
 fn string(input: &str) -> IResult<&str, Value> {

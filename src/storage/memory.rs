@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, RwLock};
 
-use anyhow::{Result};
+use anyhow::Result;
 use structopt::StructOpt;
 
 use crate::errors::*;
@@ -52,9 +52,9 @@ impl StorageBackend for MemoryStorage {
         match map.get_mut(&id) {
             Some(q) => match q.pop_front() {
                 Some(v) => Ok(v),
-                None => Ok(Value::Null)
+                None => Ok(Value::Null),
             },
-            None => Ok(Value::Null)
+            None => Ok(Value::Null),
         }
     }
 
@@ -71,7 +71,7 @@ impl StorageBackend for MemoryStorage {
 
         match map.get(&id).and_then(|x: &VecDeque<Value>| x.front()) {
             Some(v) => Ok(v.clone()),
-            None => Ok(Value::Null)
+            None => Ok(Value::Null),
         }
     }
 }

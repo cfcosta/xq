@@ -1,9 +1,9 @@
-use std::{ sync::Arc, collections::VecDeque };
+use std::{collections::VecDeque, sync::Arc};
 
 use anyhow::Result;
-use rocksdb::{DB, MergeOperands, Options};
+use rocksdb::{MergeOperands, Options, DB};
+use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
-use serde::{Serialize, Deserialize};
 
 use crate::errors::*;
 use crate::storage::StorageBackend;
@@ -23,20 +23,24 @@ pub struct RocksDBStorage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Operation {
     Enqueue(Value),
-    Dequeue
+    Dequeue,
 }
 
-pub fn merge_queue(_new_key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOperands) -> Option<Vec<u8>> {
+pub fn merge_queue(
+    _new_key: &[u8],
+    existing_val: Option<&[u8]>,
+    operands: &mut MergeOperands,
+) -> Option<Vec<u8>> {
     let mut current: VecDeque<Value> = match existing_val {
         Some(val) => bincode::deserialize::<VecDeque<Value>>(val).unwrap(),
-        None => VecDeque::new()
+        None => VecDeque::new(),
     };
 
     for op in operands {
         match bincode::deserialize::<Operation>(op).unwrap() {
             Operation::Enqueue(v) => {
                 current.push_back(v);
-            },
+            }
             Operation::Dequeue => {
                 current.pop_front();
             }
@@ -50,7 +54,10 @@ impl RocksDBStorage {
     #[tracing::instrument]
     pub fn init(path: &str) -> Result<Self> {
         Ok(Self {
-            db: Arc::new(DB::open(&Self::default_options(), path).map_err(|_| StorageError::FailedInitialize)?),
+            db: Arc::new(
+                DB::open(&Self::default_options(), path)
+                    .map_err(|_| StorageError::FailedInitialize)?,
+            ),
         })
     }
 
@@ -88,7 +95,7 @@ impl StorageBackend for RocksDBStorage {
 
         match db.get(&id.0)? {
             Some(v) => Ok(bincode::deserialize::<Vec<Value>>(&v)?.len()),
-            None => Ok(0)
+            None => Ok(0),
         }
     }
 
@@ -99,10 +106,10 @@ impl StorageBackend for RocksDBStorage {
                 let value = bincode::deserialize::<Vec<Value>>(&v)?;
                 match value.first() {
                     Some(v) => Ok(v.clone()),
-                    None => Ok(Value::Null)
+                    None => Ok(Value::Null),
                 }
             }
-            None => Ok(Value::Null)
+            None => Ok(Value::Null),
         }
     }
 }

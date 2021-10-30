@@ -1,4 +1,4 @@
-use std::{ fmt, convert::From };
+use std::{convert::From, fmt};
 
 use serde::{Deserialize, Serialize};
 
@@ -7,7 +7,7 @@ pub enum Value {
     Integer(i64),
     Float(f64),
     String(String),
-    Null
+    Null,
 }
 
 impl fmt::Display for Value {
@@ -16,7 +16,7 @@ impl fmt::Display for Value {
             Value::Integer(v) => write!(f, "{}", v),
             Value::Float(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
-            Value::Null => write!(f, "null")
+            Value::Null => write!(f, "null"),
         }
     }
 }
@@ -61,5 +61,5 @@ pub enum Command {
     Length(Identifier),
     Peek(Identifier),
     Assert(Box<Command>, Value),
-    Noop
+    Noop,
 }

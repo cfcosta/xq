@@ -4,7 +4,6 @@ use mktemp::Temp;
 
 use xq::{run_command, storage::Storage, types::*};
 
-
 fn criterion_benchmark(c: &mut Criterion) -> Result<()> {
     let path = Temp::new_dir()?.to_path_buf().display().to_string();
 
@@ -20,7 +19,9 @@ fn criterion_benchmark(c: &mut Criterion) -> Result<()> {
             run_command(
                 &storage,
                 black_box(Command::Enqueue(Identifier("a".into()), Value::Integer(1))),
-            ).await.unwrap()
+            )
+            .await
+            .unwrap()
         })
     });
 
@@ -29,11 +30,15 @@ fn criterion_benchmark(c: &mut Criterion) -> Result<()> {
             run_command(
                 &storage,
                 black_box(Command::Enqueue(Identifier("b".into()), Value::Integer(1))),
-            ).await.unwrap();
+            )
+            .await
+            .unwrap();
             run_command(
                 &storage,
                 black_box(Command::Dequeue(Identifier("b".into()))),
-            ).await.unwrap();
+            )
+            .await
+            .unwrap();
         })
     });
 
