@@ -122,10 +122,18 @@ enqueue key "string key"
 
 ### Dequeue
 
-Removes a value from a queue. If the queue is empty or not initialized, returns an error.
+Removes a value from a queue. If the queue is empty or not initialized, returns null.
 
 ```
 dequeue key
+```
+
+### Peek
+
+Returns the head of the queue without removing it
+
+```
+peek key
 ```
 
 ### Length
