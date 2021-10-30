@@ -97,13 +97,33 @@ fn assert(input: &str) -> IResult<&str, Command> {
     )(input)
 }
 
+fn assert_error(input: &str) -> IResult<&str, Command> {
+    let inner = delimited(tag("("), expr, tag(")"));
+    let with_spaces = delimited(multispace1, inner, multispace1);
+
+    map_res(
+        tuple((tag("assert error"), with_spaces)),
+        |(_, cmd): (&str, Command)| -> Result<Command> {
+            Ok(Command::AssertError(Box::new(cmd)))
+        },
+    )(input)
+}
+
 fn comment(input: &str) -> IResult<&str, Command> {
     value(Command::Noop, pair(char('#'), is_not("\r\n")))(input)
 }
 
 #[tracing::instrument]
 pub fn expr(input: &str) -> IResult<&str, Command> {
-    complete(alt((comment, enqueue, dequeue, length, peek, assert)))(input)
+    complete(alt((
+        comment,
+        enqueue,
+        dequeue,
+        length,
+        peek,
+        assert,
+        assert_error,
+    )))(input)
 }
 
 #[tracing::instrument]

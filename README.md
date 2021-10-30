@@ -37,6 +37,7 @@ combinator library](https://github.com/Geal/nom).
   - [x] Length
   - [x] Peek
   - [x] Assert
+  - [x] Assert error
   - [ ] Raft-related calls
     - [ ] Append Entries
     - [ ] Request Vote

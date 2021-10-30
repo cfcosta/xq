@@ -61,5 +61,6 @@ pub enum Command {
     Length(Identifier),
     Peek(Identifier),
     Assert(Box<Command>, Value),
+    AssertError(Box<Command>),
     Noop,
 }
