@@ -7,6 +7,7 @@ pub enum Value {
     Integer(i64),
     Float(f64),
     String(String),
+    Null
 }
 
 impl fmt::Display for Value {
@@ -15,6 +16,7 @@ impl fmt::Display for Value {
             Value::Integer(v) => write!(f, "{}", v),
             Value::Float(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
+            Value::Null => write!(f, "null")
         }
     }
 }

@@ -21,3 +21,4 @@ cargo build --no-default-features --features ${STORAGE}-storage --release
 run_test syntax
 run_test asserts
 run_test stress
+run_test null

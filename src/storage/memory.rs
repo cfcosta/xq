@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, RwLock};
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result};
 use structopt::StructOpt;
 
 use crate::errors::*;
@@ -52,9 +52,9 @@ impl StorageBackend for MemoryStorage {
         match map.get_mut(&id) {
             Some(q) => match q.pop_front() {
                 Some(v) => Ok(v),
-                None => bail!(DataError::EmptyQueue(id.0.clone())),
+                None => Ok(Value::Null)
             },
-            None => bail!(DataError::EmptyQueue(id.0.clone())),
+            None => Ok(Value::Null)
         }
     }
 
@@ -69,11 +69,9 @@ impl StorageBackend for MemoryStorage {
     async fn peek(&self, id: &Identifier) -> Result<Value> {
         let map = self.map.read().map_err(|_| StorageError::FailedLock)?;
 
-        Ok(map
-            .get(&id)
-            .ok_or(anyhow!(DataError::EmptyQueue(id.0.clone())))?
-            .front()
-            .ok_or(anyhow!(DataError::EmptyQueue(id.0.clone())))?
-            .clone())
+        match map.get(&id).and_then(|x: &VecDeque<Value>| x.front()) {
+            Some(v) => Ok(v.clone()),
+            None => Ok(Value::Null)
+        }
     }
 }

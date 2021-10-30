@@ -1,6 +1,6 @@
 use std::{ sync::Arc, collections::VecDeque };
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 use rocksdb::{DB, MergeOperands, Options};
 use structopt::StructOpt;
 use serde::{Serialize, Deserialize};
@@ -99,10 +99,10 @@ impl StorageBackend for RocksDBStorage {
                 let value = bincode::deserialize::<Vec<Value>>(&v)?;
                 match value.first() {
                     Some(v) => Ok(v.clone()),
-                    None => bail!(DataError::EmptyQueue(id.0.clone()))
+                    None => Ok(Value::Null)
                 }
             }
-            None => bail!(DataError::EmptyQueue(id.0.clone()))
+            None => Ok(Value::Null)
         }
     }
 }

@@ -39,6 +39,10 @@ fn string(input: &str) -> IResult<&str, Value> {
     })(input)
 }
 
+fn null(input: &str) -> IResult<&str, Value> {
+    map_res(tag("null"), |_| -> Result<Value> { Ok(Value::Null) })(input)
+}
+
 fn identifier(input: &str) -> IResult<&str, Identifier> {
     map_res(
         recognize(pair(
@@ -50,7 +54,7 @@ fn identifier(input: &str) -> IResult<&str, Identifier> {
 }
 
 fn val(input: &str) -> IResult<&str, Value> {
-    alt((decimal, float, string))(input)
+    alt((decimal, float, string, null))(input)
 }
 
 fn enqueue(input: &str) -> IResult<&str, Command> {
