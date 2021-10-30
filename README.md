@@ -30,7 +30,7 @@ combinator library](https://github.com/Geal/nom).
     - [x] Floats
     - [x] Strings
     - [x] Null
-  - [ ] Declare
+  - [ ] Open
   - [ ] Close
   - [x] Enqueue
   - [x] Dequeue
@@ -117,7 +117,7 @@ cargo run --release --bin xq -- 127.0.0.1:8080
 
 ## Syntax Reference
 
-To start using a queue, you need to declare it, along with this types type. The
+To start using a queue, you need to open it, along with this types type. The
 available types are:
 
 - `:integer`
@@ -129,13 +129,13 @@ Closing a queue stops it from receiving values, as well as removing the current
 ones on the queue. There isn't any performance cost of keeping the keys there
 after they've been persisted to the WAL log, so it isn't necessary.
 
-### Declare
+### Open
 
 ```
-declare a :integer
-declare b :float
-declare c :string
-declare d :null
+open a :integer
+open b :float
+open c :string
+open d :null
 ```
 
 ### Close
