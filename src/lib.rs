@@ -78,7 +78,7 @@ pub async fn run_command<T: StorageBackend + Send + Sync + Debug>(
                     expected: String::from("Error"),
                     got: None,
                 }),
-                Err(_) => Ok(CommandResult::Empty)
+                Err(_) => Ok(CommandResult::Empty),
             }
         }
         Command::Noop => Ok(CommandResult::Empty),

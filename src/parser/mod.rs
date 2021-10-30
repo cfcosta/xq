@@ -103,9 +103,7 @@ fn assert_error(input: &str) -> IResult<&str, Command> {
 
     map_res(
         tuple((tag("assert error"), with_spaces)),
-        |(_, cmd): (&str, Command)| -> Result<Command> {
-            Ok(Command::AssertError(Box::new(cmd)))
-        },
+        |(_, cmd): (&str, Command)| -> Result<Command> { Ok(Command::AssertError(Box::new(cmd))) },
     )(input)
 }
 
