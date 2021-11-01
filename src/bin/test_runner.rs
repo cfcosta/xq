@@ -39,7 +39,7 @@ async fn main() -> Result<()> {
 
     for command in commands {
         debug!(command = ?&command, "Running command");
-        let _ = run_command(&storage, command).await?;
+        let _ = run_command(&storage, command)?;
     }
 
     info!("Test finished successfully");

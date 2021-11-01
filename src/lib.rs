@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
 use anyhow::{bail, Result};
-use async_recursion::async_recursion;
 
 pub mod errors;
 pub mod parser;
@@ -18,32 +17,31 @@ pub enum CommandResult {
 }
 
 #[tracing::instrument]
-#[async_recursion]
-pub async fn run_command<T: StorageBackend + Send + Sync + Debug>(
+pub fn run_command<T: StorageBackend + Send + Sync + Debug>(
     storage: &T,
     command: Command,
 ) -> Result<CommandResult> {
     match command {
         Command::Enqueue(key, value) => {
-            storage.enqueue(&key, value).await?;
+            storage.enqueue(&key, value)?;
             Ok(CommandResult::Empty)
         }
         Command::Dequeue(key) => {
-            let value = storage.dequeue(&key).await?;
+            let value = storage.dequeue(&key)?;
             Ok(CommandResult::Val(value))
         }
         Command::Length(key) => {
-            let value = storage.length(&key).await?;
+            let value = storage.length(&key)?;
             Ok(CommandResult::Val(Value::Integer(value as i64)))
         }
         Command::Peek(key) => {
-            let value = storage.peek(&key).await?;
+            let value = storage.peek(&key)?;
             Ok(CommandResult::Val(value))
         }
         Command::Assert(cmd, val) => {
             let cmd_desc = format!("{:?}", &cmd);
 
-            match run_command(storage, *cmd).await? {
+            match run_command(storage, *cmd)? {
                 CommandResult::Val(result) => {
                     if result == val {
                         return Ok(CommandResult::Empty);
@@ -67,7 +65,7 @@ pub async fn run_command<T: StorageBackend + Send + Sync + Debug>(
         Command::AssertError(cmd) => {
             let cmd_desc = format!("{:?}", &cmd);
 
-            match run_command(storage, *cmd).await {
+            match run_command(storage, *cmd) {
                 Ok(CommandResult::Val(result)) => bail!(DataError::FailedAssertion {
                     command: cmd_desc,
                     expected: String::from("Error"),

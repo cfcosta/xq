@@ -29,12 +29,13 @@ async fn run_server<T: StorageBackend + Send + Sync + Debug>(
 
     loop {
         let _ = socket.read(&mut buf).await?;
+
         match parser::parse(&str::from_utf8(&buf)?) {
             Ok(commands) => {
                 for command in commands {
                     debug!(command = ?&command, "Running command");
 
-                    match run_command(&storage, command).await {
+                    match run_command(&storage, command) {
                         Ok(res) => match res {
                             CommandResult::Empty => socket.write_all(b"OK\n").await?,
                             CommandResult::Val(v) => {

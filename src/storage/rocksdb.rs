@@ -72,7 +72,7 @@ impl RocksDBStorage {
 #[async_trait::async_trait]
 impl StorageBackend for RocksDBStorage {
     #[tracing::instrument]
-    async fn enqueue(&self, id: &Identifier, value: Value) -> Result<()> {
+    fn enqueue(&self, id: &Identifier, value: Value) -> Result<()> {
         let op = bincode::serialize(&Operation::Enqueue(value))?;
         self.db.merge(&id.0, op)?;
 
@@ -80,8 +80,8 @@ impl StorageBackend for RocksDBStorage {
     }
 
     #[tracing::instrument]
-    async fn dequeue(&self, id: &Identifier) -> Result<Value> {
-        let val = self.peek(id).await?;
+    fn dequeue(&self, id: &Identifier) -> Result<Value> {
+        let val = self.peek(id)?;
         let op = bincode::serialize(&Operation::Dequeue)?;
 
         self.db.merge(&id.0, op)?;
@@ -90,7 +90,7 @@ impl StorageBackend for RocksDBStorage {
     }
 
     #[tracing::instrument]
-    async fn length(&self, id: &Identifier) -> Result<usize> {
+    fn length(&self, id: &Identifier) -> Result<usize> {
         let db = self.db.clone();
 
         match db.get(&id.0)? {
@@ -100,7 +100,7 @@ impl StorageBackend for RocksDBStorage {
     }
 
     #[tracing::instrument]
-    async fn peek(&self, id: &Identifier) -> Result<Value> {
+    fn peek(&self, id: &Identifier) -> Result<Value> {
         match self.db.get(&id.0)? {
             Some(v) => {
                 let value = bincode::deserialize::<Vec<Value>>(&v)?;
