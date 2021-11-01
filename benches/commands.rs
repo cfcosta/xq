@@ -25,6 +25,29 @@ fn criterion_benchmark(c: &mut Criterion) -> Result<()> {
         })
     });
 
+    c.bench_function("multiple peeks", |b| {
+        b.to_async(&rt).iter(|| async {
+            run_command(
+                &storage,
+                black_box(Command::Enqueue(
+                    Identifier("multipeeks".into()),
+                    Value::Integer(1),
+                )),
+            )
+            .await
+            .unwrap();
+
+            for _ in 1..100 {
+                run_command(
+                    &storage,
+                    black_box(Command::Peek(Identifier("multipeeks".into()))),
+                )
+                .await
+                .unwrap();
+            }
+        });
+    });
+
     c.bench_function("enqueue + dequeue", |b| {
         b.to_async(&rt).iter(|| async {
             run_command(
@@ -33,6 +56,25 @@ fn criterion_benchmark(c: &mut Criterion) -> Result<()> {
             )
             .await
             .unwrap();
+            run_command(
+                &storage,
+                black_box(Command::Dequeue(Identifier("b".into()))),
+            )
+            .await
+            .unwrap();
+        })
+    });
+
+    c.bench_function("enqueue * 100 + dequeue", |b| {
+        b.to_async(&rt).iter(|| async {
+            for _ in 1..100 {
+                run_command(
+                    &storage,
+                    black_box(Command::Enqueue(Identifier("b".into()), Value::Integer(1))),
+                )
+                .await
+                .unwrap();
+            }
             run_command(
                 &storage,
                 black_box(Command::Dequeue(Identifier("b".into()))),
