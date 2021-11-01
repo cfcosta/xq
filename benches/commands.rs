@@ -75,6 +75,23 @@ fn criterion_benchmark(c: &mut Criterion) -> Result<()> {
         })
     });
 
+    c.bench_function("enqueue * 1000 + dequeue", |b| {
+        b.iter(|| {
+            for _ in 1..1000 {
+                run_command(
+                    &storage,
+                    black_box(Command::Enqueue(Identifier("b".into()), Value::Integer(1))),
+                )
+                .unwrap();
+            }
+            run_command(
+                &storage,
+                black_box(Command::Dequeue(Identifier("b".into()))),
+            )
+            .unwrap();
+        })
+    });
+
     Ok(())
 }
 
