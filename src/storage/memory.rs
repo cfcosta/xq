@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
@@ -13,7 +13,7 @@ pub struct StorageOptions {}
 
 #[derive(Debug, Clone)]
 pub struct MemoryStorage {
-    map: Arc<RwLock<HashMap<Identifier, Item>>>,
+    map: Arc<RwLock<BTreeMap<Identifier, Item>>>,
 }
 
 #[derive(Debug)]
@@ -64,7 +64,7 @@ impl MemoryStorage {
     #[tracing::instrument]
     pub fn new() -> Self {
         Self {
-            map: Arc::new(RwLock::new(HashMap::new())),
+            map: Arc::new(RwLock::new(Default::default())),
         }
     }
 }
