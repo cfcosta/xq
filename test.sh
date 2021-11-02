@@ -22,4 +22,3 @@ run_test syntax
 run_test asserts
 run_test stress
 run_test null
-run_test errors
