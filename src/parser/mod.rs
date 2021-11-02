@@ -57,7 +57,7 @@ fn val(input: &str) -> IResult<&str, Value> {
 
 fn enqueue(input: &str) -> IResult<&str, Command> {
     map_res(
-        tuple((tag("enqueue"), multispace1, identifier, multispace1, val)),
+        tuple((tag("enqueue"), tag(" "), identifier, tag(" "), val)),
         |(_, _, id, _, val): (&str, &str, Identifier, &str, Value)| -> Result<Command> {
             Ok(Command::enqueue(id, val))
         },
