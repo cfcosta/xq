@@ -38,7 +38,7 @@ fn string(input: &str) -> IResult<&str, Value> {
 }
 
 fn null(input: &str) -> IResult<&str, Value> {
-    map_res(tag("null"), |_| -> Result<Value> { Ok(Value::Null) })(input)
+    value(Value::Null, tag("null"))(input)
 }
 
 fn identifier(input: &str) -> IResult<&str, Identifier> {
@@ -47,7 +47,7 @@ fn identifier(input: &str) -> IResult<&str, Identifier> {
             alt((alpha1, tag("_"))),
             many0(alt((alphanumeric1, tag("_")))),
         )),
-        |out: &str| -> Result<Identifier> { Ok(Identifier(out.into())) },
+        |out: &str| -> Result<Identifier> { Ok(out.into()) },
     )(input)
 }
 
@@ -59,7 +59,7 @@ fn enqueue(input: &str) -> IResult<&str, Command> {
     map_res(
         tuple((tag("enqueue"), multispace1, identifier, multispace1, val)),
         |(_, _, id, _, val): (&str, &str, Identifier, &str, Value)| -> Result<Command> {
-            Ok(Command::Enqueue(id, val))
+            Ok(Command::enqueue(id, val))
         },
     )(input)
 }
@@ -137,54 +137,59 @@ pub fn parse(input: &str) -> Result<Vec<Command>> {
 
 #[test]
 fn decimal_test() {
-    assert_eq!(decimal("1"), Ok(("", Value::Integer(1))));
-    assert_eq!(decimal("2"), Ok(("", Value::Integer(2))));
-    assert_eq!(decimal("3"), Ok(("", Value::Integer(3))));
-    assert_eq!(decimal("4"), Ok(("", Value::Integer(4))));
-    assert_eq!(decimal("5"), Ok(("", Value::Integer(5))));
+    assert_eq!(decimal("1"), Ok(("", 1.into())));
+    assert_eq!(decimal("2"), Ok(("", 2.into())));
+    assert_eq!(decimal("3"), Ok(("", 3.into())));
+    assert_eq!(decimal("4"), Ok(("", 4.into())));
+    assert_eq!(decimal("5"), Ok(("", 5.into())));
     assert_eq!(decimal("123456"), Ok(("", Value::Integer(123456))));
     assert!(decimal("a").is_err());
 }
 
 #[test]
 fn float_test() {
-    assert_eq!(float("1.0"), Ok(("", Value::Float(1.0))));
-    assert_eq!(float("2.0"), Ok(("", Value::Float(2.0))));
-    assert_eq!(float("4.0"), Ok(("", Value::Float(4.0))));
-    assert_eq!(float("5.0"), Ok(("", Value::Float(5.0))));
+    assert_eq!(float("1.0"), Ok(("", (1.0).into())));
+    assert_eq!(float("2.0"), Ok(("", (2.0).into())));
+    assert_eq!(float("4.0"), Ok(("", (4.0).into())));
+    assert_eq!(float("5.0"), Ok(("", (5.0).into())));
     assert!(float("a").is_err());
 }
 
 #[test]
-fn expr_test() {
-    let id = Identifier(String::from("omg"));
+fn null_test() {
+    assert_eq!(null("null"), Ok(("", Value::Null)));
+    assert_eq!(
+        expr("enqueue a null"),
+        Ok(("", Command::enqueue("a", Value::Null)))
+    );
+}
 
+#[test]
+fn expr_test() {
     assert_eq!(
         expr("enqueue omg 123"),
-        Ok(("", Command::Enqueue(id.clone(), Value::Integer(123))))
+        Ok(("", Command::enqueue("omg", 123)))
     );
-    assert_eq!(expr("dequeue omg"), Ok(("", Command::Dequeue(id.clone()))));
-    assert_eq!(expr("length omg"), Ok(("", Command::Length(id.clone()))));
-    assert_eq!(expr("peek omg"), Ok(("", Command::Peek(id.clone()))));
+    assert_eq!(expr("dequeue omg"), Ok(("", Command::dequeue("omg"))));
+    assert_eq!(expr("length omg"), Ok(("", Command::length("omg"))));
+    assert_eq!(expr("peek omg"), Ok(("", Command::peek("omg"))));
     assert_eq!(
         expr("assert (peek omg) 1"),
         Ok((
             "",
-            Command::Assert(Box::new(Command::Peek(id)), Value::Integer(1))
+            Command::Assert(Box::new(Command::peek("omg")), 1.into())
         ))
     );
 }
 
 #[test]
 fn program_test() -> Result<()> {
-    let id = Identifier(String::from("omg"));
-
     assert_eq!(
         parse("enqueue omg 123\r\ndequeue omg\r\nlength omg")?,
         vec![
-            Command::Enqueue(id.clone(), Value::Integer(123)),
-            Command::Dequeue(id.clone()),
-            Command::Length(id.clone())
+            Command::enqueue("omg", 123),
+            Command::dequeue("omg"),
+            Command::length("omg")
         ]
     );
 

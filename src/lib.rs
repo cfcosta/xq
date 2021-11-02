@@ -27,7 +27,7 @@ pub fn run_command<T: StorageBackend + Send + Sync + Debug>(
         }
         Command::Length(key) => {
             let value = storage.length(&key)?;
-            Ok(Some(Value::Integer(value as i64)))
+            Ok(Some((value as i64).into()))
         }
         Command::Peek(key) => {
             let value = storage.peek(&key)?;

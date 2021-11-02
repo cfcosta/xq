@@ -48,6 +48,18 @@ impl From<f32> for Value {
 #[derive(Debug, PartialEq, Clone, PartialOrd, Ord, Eq, Hash)]
 pub struct Identifier(pub String);
 
+impl From<&str> for Identifier {
+    fn from(v: &str) -> Self {
+        Identifier(v.into())
+    }
+}
+
+impl From<String> for Identifier {
+    fn from(v: String) -> Self {
+        Identifier(v.into())
+    }
+}
+
 impl fmt::Display for Identifier {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -63,4 +75,22 @@ pub enum Command {
     Assert(Box<Command>, Value),
     AssertError(Box<Command>),
     Noop,
+}
+
+impl Command {
+    pub fn enqueue<Id: Into<Identifier>, V: Into<Value>>(id: Id, v: V) -> Self {
+        Self::Enqueue(id.into(), v.into())
+    }
+
+    pub fn dequeue<T: Into<Identifier>>(id: T) -> Self {
+        Self::Dequeue(id.into())
+    }
+
+    pub fn peek<T: Into<Identifier>>(id: T) -> Self {
+        Self::Peek(id.into())
+    }
+
+    pub fn length<T: Into<Identifier>>(id: T) -> Self {
+        Self::Length(id.into())
+    }
 }
