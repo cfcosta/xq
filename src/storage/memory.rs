@@ -45,7 +45,7 @@ impl Item {
         let (start, end) = self.bounds;
 
         self.bounds = (start + 1, end);
-        self.data.get_mut(self.bounds.0)
+        self.data.get_mut(start)
     }
 
     #[inline(always)]
@@ -58,6 +58,13 @@ impl Item {
         let (start, end) = self.bounds;
         end - start
     }
+}
+
+#[test]
+fn enqueued_item_is_dequeued_correctly() {
+    let mut item = Item::default();
+    item.enqueue(Value::Integer(1));
+    assert_eq!(item.dequeue(), Some(&mut Value::Integer(1)));
 }
 
 impl MemoryStorage {
