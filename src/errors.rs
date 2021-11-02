@@ -12,7 +12,7 @@ pub enum DataError {
     FailedAssertion {
         command: String,
         expected: String,
-        got: Option<String>,
+        got: String,
     },
 }
 

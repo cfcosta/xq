@@ -9,7 +9,6 @@ use tracing::{debug, info, trace};
 use xq::{
     parser, run_command,
     storage::{Storage, StorageBackend, StorageOptions},
-    CommandResult,
 };
 
 #[derive(Clone, Debug, StructOpt)]
@@ -36,12 +35,8 @@ async fn run_server<T: StorageBackend + Send + Sync + Debug>(
                     debug!(command = ?&command, "Running command");
 
                     match run_command(&storage, command) {
-                        Ok(res) => match res {
-                            CommandResult::Empty => socket.write_all(b"OK\n").await?,
-                            CommandResult::Val(v) => {
-                                socket.write_all(format!("{}\n", v).as_bytes()).await?
-                            }
-                        },
+                        Ok(Some(v)) => socket.write_all(format!("{}\n", v).as_bytes()).await?,
+                        Ok(None) => socket.write_all(b"OK\n").await?,
                         Err(e) => {
                             socket
                                 .write_all(format!("ERROR: {}\n", e).as_bytes())

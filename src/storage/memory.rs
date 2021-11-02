@@ -19,14 +19,14 @@ pub struct MemoryStorage {
 #[derive(Debug)]
 pub struct Item {
     bounds: (usize, usize),
-    data: Vec<Value>
+    data: Vec<Value>,
 }
 
 impl Default for Item {
     fn default() -> Self {
         Self {
             bounds: (0, 0),
-            data: Default::default()
+            data: Default::default(),
         }
     }
 }

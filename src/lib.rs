@@ -11,53 +11,48 @@ use errors::*;
 use storage::StorageBackend;
 use types::*;
 
-pub enum CommandResult {
-    Empty,
-    Val(Value),
-}
-
 #[tracing::instrument]
 pub fn run_command<T: StorageBackend + Send + Sync + Debug>(
     storage: &T,
     command: Command,
-) -> Result<CommandResult> {
+) -> Result<Option<Value>> {
     match command {
         Command::Enqueue(key, value) => {
             storage.enqueue(&key, value)?;
-            Ok(CommandResult::Empty)
+            Ok(None)
         }
         Command::Dequeue(key) => {
             let value = storage.dequeue(&key)?;
-            Ok(CommandResult::Val(value))
+            Ok(Some(value))
         }
         Command::Length(key) => {
             let value = storage.length(&key)?;
-            Ok(CommandResult::Val(Value::Integer(value as i64)))
+            Ok(Some(Value::Integer(value as i64)))
         }
         Command::Peek(key) => {
             let value = storage.peek(&key)?;
-            Ok(CommandResult::Val(value))
+            Ok(Some(value))
         }
         Command::Assert(cmd, val) => {
             let cmd_desc = format!("{:?}", &cmd);
 
             match run_command(storage, *cmd)? {
-                CommandResult::Val(result) => {
+                Some(result) => {
                     if result == val {
-                        return Ok(CommandResult::Empty);
+                        return Ok(None);
                     }
 
                     bail!(DataError::FailedAssertion {
                         command: cmd_desc,
                         expected: format!("{:?}", val),
-                        got: Some(format!("{:?}", result)),
+                        got: format!("{:?}", result),
                     })
                 }
-                CommandResult::Empty => {
+                None => {
                     bail!(DataError::FailedAssertion {
                         command: cmd_desc,
                         expected: format!("{:?}", val),
-                        got: None
+                        got: format!("{:?}", Value::Null)
                     })
                 }
             }
@@ -66,19 +61,19 @@ pub fn run_command<T: StorageBackend + Send + Sync + Debug>(
             let cmd_desc = format!("{:?}", &cmd);
 
             match run_command(storage, *cmd) {
-                Ok(CommandResult::Val(result)) => bail!(DataError::FailedAssertion {
+                Ok(Some(result)) => bail!(DataError::FailedAssertion {
                     command: cmd_desc,
                     expected: String::from("Error"),
-                    got: Some(format!("{:?}", result)),
+                    got: format!("{:?}", result),
                 }),
-                Ok(CommandResult::Empty) => bail!(DataError::FailedAssertion {
+                Ok(None) => bail!(DataError::FailedAssertion {
                     command: cmd_desc,
                     expected: String::from("Error"),
-                    got: None,
+                    got: format!("{:?}", Value::Null)
                 }),
-                Err(_) => Ok(CommandResult::Empty),
+                Err(_) => Ok(None),
             }
         }
-        Command::Noop => Ok(CommandResult::Empty),
+        Command::Noop => Ok(None),
     }
 }
