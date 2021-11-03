@@ -52,6 +52,7 @@ fn benchmark_parse_full_program() -> Result<()> {
         peek a
         dequeue a
         peek a
+        length a
     ")?;
 
     Ok(())

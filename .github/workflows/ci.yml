@@ -23,3 +23,5 @@ jobs:
         run: ./test.sh memory
       - name: Run tests for RocksDB Storage
         run: ./test.sh rocksdb
+      - name: Run benchmarks
+        run: cargo bench
