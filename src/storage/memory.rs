@@ -91,6 +91,42 @@ impl MemoryStorage {
 #[async_trait::async_trait]
 impl StorageBackend for MemoryStorage {
     #[tracing::instrument]
+    fn open(&self, id: &Identifier, kind: QueueType) -> Result<()> {
+        let mut map = self.map.write().map_err(|_| StorageError::FailedLock)?;
+
+        match map.get(id) {
+            Some(_) => bail!(DataError::AlreadyOpen {
+                queue: id.0.clone()
+            }),
+            None => {
+                map.insert(
+                    id.clone(),
+                    Item {
+                        kind,
+                        ..Default::default()
+                    },
+                );
+
+                Ok(())
+            }
+        }
+    }
+
+    fn close(&self, id: &Identifier) -> Result<()> {
+        let mut map = self.map.write().map_err(|_| StorageError::FailedLock)?;
+
+        match map.get(&id) {
+            Some(_) => {
+                map.remove(id);
+                Ok(())
+            }
+            None => bail!(DataError::ClosedQueue {
+                queue: id.0.clone()
+            }),
+        }
+    }
+
+    #[tracing::instrument]
     fn enqueue(&self, id: &Identifier, value: Value) -> Result<()> {
         let mut map = self.map.write().map_err(|_| StorageError::FailedLock)?;
 
@@ -124,8 +160,8 @@ impl StorageBackend for MemoryStorage {
     fn length(&self, id: &Identifier) -> Result<usize> {
         let map = self.map.read().map_err(|_| StorageError::FailedLock)?;
 
-        match map.get(&id).map(|x| x.length()) {
-            Some(v) => Ok(v),
+        match map.get(&id) {
+            Some(v) => Ok(v.length()),
             None => bail!(DataError::ClosedQueue {
                 queue: id.0.clone()
             }),
@@ -136,8 +172,8 @@ impl StorageBackend for MemoryStorage {
     fn peek(&self, id: &Identifier) -> Result<Value> {
         let map = self.map.read().map_err(|_| StorageError::FailedLock)?;
 
-        match map.get(&id).and_then(|x| x.peek()) {
-            Some(v) => Ok(v.clone()),
+        match map.get(&id) {
+            Some(item) => Ok(item.peek().unwrap_or(&Value::Null).clone()),
             None => bail!(DataError::ClosedQueue {
                 queue: id.0.clone()
             }),

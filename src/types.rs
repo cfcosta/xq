@@ -79,6 +79,8 @@ impl fmt::Display for Identifier {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Command {
+    Open(Identifier, QueueType),
+    Close(Identifier),
     Enqueue(Identifier, Value),
     Dequeue(Identifier),
     Length(Identifier),
@@ -89,6 +91,14 @@ pub enum Command {
 }
 
 impl Command {
+    pub fn open<Id: Into<Identifier>>(id: Id, kind: QueueType) -> Self {
+        Self::Open(id.into(), kind)
+    }
+
+    pub fn close<Id: Into<Identifier>>(id: Id) -> Self {
+        Self::close(id.into())
+    }
+
     pub fn enqueue<Id: Into<Identifier>, V: Into<Value>>(id: Id, v: V) -> Self {
         Self::Enqueue(id.into(), v.into())
     }

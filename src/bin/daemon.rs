@@ -7,7 +7,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tracing::{debug, info, trace};
 
 use xq::{
-    parser, run_command,
+    parser, Runtime,
     storage::{Storage, StorageBackend, StorageOptions},
 };
 
@@ -24,6 +24,7 @@ async fn run_server<T: StorageBackend + Send + Sync + Debug>(
     mut socket: TcpStream,
     storage: T,
 ) -> Result<()> {
+    let rt = Runtime;
     let mut buf = vec![0; 1024];
 
     loop {
@@ -34,7 +35,7 @@ async fn run_server<T: StorageBackend + Send + Sync + Debug>(
                 for command in commands {
                     debug!(command = ?&command, "Running command");
 
-                    match run_command(&storage, command) {
+                    match rt.run_command(&storage, command) {
                         Ok(Some(v)) => socket.write_all(format!("{}\n", v).as_bytes()).await?,
                         Ok(None) => socket.write_all(b"OK\n").await?,
                         Err(e) => {

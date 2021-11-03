@@ -25,6 +25,10 @@ pub enum DataError {
     ClosedQueue {
         queue: String
     },
+    #[error("Queue {queue} is already open and can't be open again")]
+    AlreadyOpen {
+        queue: String
+    },
 }
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]

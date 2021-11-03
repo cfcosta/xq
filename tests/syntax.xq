@@ -4,9 +4,13 @@ assert error (dequeue a)
 assert error (peek a)
 assert error (length a)
 # We can open keys with different data types
-open q_int :integer
+open q_int :int
 open q_float :float
 open q_string :string
+# Opening queues twice return error
+assert error (open q_int :int)
+assert error (open q_float :float)
+assert error (open q_string :string)
 # All open queues start with length 0
 assert (length q_int) 0
 assert (length q_float) 0

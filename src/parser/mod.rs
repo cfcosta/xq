@@ -5,14 +5,14 @@ use nom::{
     character::complete::*,
     combinator::*,
     multi::{many0, many1},
-    sequence::{delimited, pair, terminated, tuple},
+    sequence::{delimited, pair, tuple},
     IResult,
 };
 
 mod string;
 
 use crate::errors::*;
-use crate::types::{Command, Identifier, Value};
+use crate::types::*;
 
 fn decimal(input: &str) -> IResult<&str, Value> {
     map_res(digit1, |input| -> Result<Value> {
@@ -50,9 +50,41 @@ fn val(input: &str) -> IResult<&str, Value> {
     alt((decimal, float, string, null))(input)
 }
 
+fn kind_int(input: &str) -> IResult<&str, QueueType> {
+    value(QueueType::Integer, alt((tag(":integer"), tag(":int"))))(input)
+}
+
+fn kind_float(input: &str) -> IResult<&str, QueueType> {
+    value(QueueType::Float, tag(":float"))(input)
+}
+
+fn kind_string(input: &str) -> IResult<&str, QueueType> {
+    value(QueueType::String, tag(":string"))(input)
+}
+
+fn kind(input: &str) -> IResult<&str, QueueType> {
+    alt((kind_int, kind_float, kind_string))(input)
+}
+
+fn open(input: &str) -> IResult<&str, Command> {
+    map_res(
+        tuple((tag("open"), multispace1, identifier, multispace1, kind)),
+        |(_, _, id, _, kind): (&str, &str, Identifier, &str, QueueType)| -> Result<Command> {
+            Ok(Command::open(id, kind))
+        },
+    )(input)
+}
+
+fn close(input: &str) -> IResult<&str, Command> {
+    map_res(
+        tuple((tag("close"), multispace1, identifier)),
+        |(_, _, id): (&str, &str, Identifier)| -> Result<Command> { Ok(Command::close(id)) },
+    )(input)
+}
+
 fn enqueue(input: &str) -> IResult<&str, Command> {
     map_res(
-        tuple((tag("enqueue"), tag(" "), identifier, tag(" "), val)),
+        tuple((tag("enqueue"), multispace1, identifier, multispace1, val)),
         |(_, _, id, _, val): (&str, &str, Identifier, &str, Value)| -> Result<Command> {
             Ok(Command::enqueue(id, val))
         },
@@ -62,7 +94,7 @@ fn enqueue(input: &str) -> IResult<&str, Command> {
 fn dequeue(input: &str) -> IResult<&str, Command> {
     map_res(
         tuple((tag("dequeue"), multispace1, identifier)),
-        |(_, _, id): (&str, &str, Identifier)| -> Result<Command> { Ok(Command::Dequeue(id)) },
+        |(_, _, id): (&str, &str, Identifier)| -> Result<Command> { Ok(Command::dequeue(id)) },
     )(input)
 }
 
@@ -109,6 +141,8 @@ fn comment(input: &str) -> IResult<&str, Command> {
 #[tracing::instrument]
 pub fn expr(input: &str) -> IResult<&str, Command> {
     complete(alt((
+        open,
+        close,
         comment,
         enqueue,
         dequeue,
@@ -121,11 +155,12 @@ pub fn expr(input: &str) -> IResult<&str, Command> {
 
 #[tracing::instrument]
 pub fn program(input: &str) -> IResult<&str, Vec<Command>> {
-    many1(terminated(expr, opt(line_ending)))(input)
+    many1(delimited(opt(line_ending), expr, opt(line_ending)))(input)
 }
 
 pub fn parse(input: &str) -> Result<Vec<Command>> {
-    let (_, prg) = program(input).map_err(|_| SyntaxError::ParseError(input.to_string()))?;
+    let (rest, prg) = program(input).map_err(|_| SyntaxError::ParseError(input.to_string()))?;
+    dbg!(rest);
 
     Ok(prg)
 }
@@ -168,6 +203,10 @@ fn expr_test() {
     assert_eq!(expr("dequeue omg"), Ok(("", Command::dequeue("omg"))));
     assert_eq!(expr("length omg"), Ok(("", Command::length("omg"))));
     assert_eq!(expr("peek omg"), Ok(("", Command::peek("omg"))));
+    assert_eq!(
+        expr("open omg :int"),
+        Ok(("", Command::open("omg", QueueType::Integer)))
+    );
     assert_eq!(
         expr("assert (peek omg) 1"),
         Ok((

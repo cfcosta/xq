@@ -6,7 +6,7 @@ use structopt::StructOpt;
 use tracing::{debug, info, trace};
 
 use xq::{
-    parser, run_command,
+    parser, Runtime,
     storage::{Storage, StorageOptions},
 };
 
@@ -26,6 +26,8 @@ async fn main() -> Result<()> {
 
     let options = Options::from_args();
     let contents = fs::read_to_string(options.file)?;
+    
+    let rt = Runtime;
 
     #[cfg(feature = "memory-storage")]
     let storage = Storage::new();
@@ -39,7 +41,7 @@ async fn main() -> Result<()> {
 
     for command in commands {
         debug!(command = ?&command, "Running command");
-        let _ = run_command(&storage, command)?;
+        let _ = rt.run_command(&storage, command)?;
     }
 
     info!("Test finished successfully");

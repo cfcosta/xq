@@ -17,6 +17,8 @@ pub use self::rocksdb::RocksDBStorage as Storage;
 pub use self::rocksdb::StorageOptions;
 
 pub trait StorageBackend {
+    fn open(&self, id: &Identifier, kind: QueueType) -> Result<()>;
+    fn close(&self, id: &Identifier) -> Result<()>;
     fn enqueue(&self, id: &Identifier, value: Value) -> Result<()>;
     fn dequeue(&self, id: &Identifier) -> Result<Value>;
     fn length(&self, id: &Identifier) -> Result<usize>;
