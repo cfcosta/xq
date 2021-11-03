@@ -15,6 +15,10 @@ assert (length q_string) 0
 assert (peek q_int) null
 assert (peek q_float) null
 assert (peek q_string) null
+# Peeking at an empty queue always returns null
+assert (dequeue q_int) null
+assert (dequeue q_float) null
+assert (dequeue q_string) null
 # We can enqueue data to a queue, as long as the types match
 enqueue q_int 1
 assert error (enqueue q_int 1.01)

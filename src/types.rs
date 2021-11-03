@@ -10,6 +10,17 @@ pub enum Value {
     Null,
 }
 
+impl Value {
+    pub fn kind(&self) -> QueueType {
+        match self {
+            Self::Integer(_) => QueueType::Integer,
+            Self::Float(_) => QueueType::Float,
+            Self::String(_) => QueueType::String,
+            Self::Null => QueueType::Null,
+        }
+    }
+}
+
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -93,4 +104,12 @@ impl Command {
     pub fn length<T: Into<Identifier>>(id: T) -> Self {
         Self::Length(id.into())
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum QueueType {
+    Integer,
+    Float,
+    String,
+    Null
 }

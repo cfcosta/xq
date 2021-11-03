@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use structopt::StructOpt;
 
 use crate::errors::*;
@@ -18,6 +18,7 @@ pub struct MemoryStorage {
 
 #[derive(Debug)]
 pub struct Item {
+    kind: QueueType,
     bounds: (usize, usize),
     data: Vec<Value>,
 }
@@ -25,6 +26,7 @@ pub struct Item {
 impl Default for Item {
     fn default() -> Self {
         Self {
+            kind: QueueType::Integer,
             bounds: (0, 0),
             data: Default::default(),
         }
@@ -33,11 +35,19 @@ impl Default for Item {
 
 impl Item {
     #[inline(always)]
-    fn enqueue(&mut self, v: Value) {
-        let (start, end) = self.bounds;
-        self.bounds = (start, end + 1);
+    fn enqueue(&mut self, v: Value) -> Result<()> {
+        if v.kind() == self.kind {
+            let (start, end) = self.bounds;
+            self.bounds = (start, end + 1);
 
-        self.data.push(v);
+            self.data.push(v);
+            Ok(())
+        } else {
+            bail!(DataError::IncorrectType {
+                expected: v.kind(),
+                got: self.kind
+            })
+        }
     }
 
     #[inline(always)]
@@ -61,10 +71,12 @@ impl Item {
 }
 
 #[test]
-fn enqueued_item_is_dequeued_correctly() {
+fn enqueued_item_is_dequeued_correctly() -> Result<()> {
     let mut item = Item::default();
-    item.enqueue(Value::Integer(1));
+    item.enqueue(Value::Integer(1))?;
     assert_eq!(item.dequeue(), Some(&mut Value::Integer(1)));
+
+    Ok(())
 }
 
 impl MemoryStorage {
@@ -83,15 +95,14 @@ impl StorageBackend for MemoryStorage {
         let mut map = self.map.write().map_err(|_| StorageError::FailedLock)?;
 
         match map.get_mut(&id) {
-            Some(v) => v.enqueue(value),
-            None => {
-                let mut item = Item::default();
-                item.enqueue(value);
-
-                map.insert(id.clone(), item);
+            Some(v) => {
+                v.enqueue(value)?;
+                Ok(())
             }
+            None => bail!(DataError::ClosedQueue {
+                queue: id.0.clone()
+            }),
         }
-        Ok(())
     }
 
     #[tracing::instrument]
@@ -103,7 +114,9 @@ impl StorageBackend for MemoryStorage {
                 Some(v) => Ok(v.clone()),
                 None => Ok(Value::Null),
             },
-            None => Ok(Value::Null),
+            None => bail!(DataError::ClosedQueue {
+                queue: id.0.clone()
+            }),
         }
     }
 
@@ -111,7 +124,12 @@ impl StorageBackend for MemoryStorage {
     fn length(&self, id: &Identifier) -> Result<usize> {
         let map = self.map.read().map_err(|_| StorageError::FailedLock)?;
 
-        Ok(map.get(&id).map(|x| x.length()).unwrap_or(0))
+        match map.get(&id).map(|x| x.length()) {
+            Some(v) => Ok(v),
+            None => bail!(DataError::ClosedQueue {
+                queue: id.0.clone()
+            }),
+        }
     }
 
     #[tracing::instrument]
@@ -120,7 +138,9 @@ impl StorageBackend for MemoryStorage {
 
         match map.get(&id).and_then(|x| x.peek()) {
             Some(v) => Ok(v.clone()),
-            None => Ok(Value::Null),
+            None => bail!(DataError::ClosedQueue {
+                queue: id.0.clone()
+            }),
         }
     }
 }

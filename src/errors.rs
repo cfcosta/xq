@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::types::QueueType;
+
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum SyntaxError {
     #[error("Failed to parse input: {0}")]
@@ -13,6 +15,15 @@ pub enum DataError {
         command: String,
         expected: String,
         got: String,
+    },
+    #[error("Incorrect typing\n  expected:{expected:?}\n  got: {got:?}")]
+    IncorrectType {
+        expected: QueueType,
+        got: QueueType,
+    },
+    #[error("Queue {queue} is closed or was never open")]
+    ClosedQueue {
+        queue: String
     },
 }
 
